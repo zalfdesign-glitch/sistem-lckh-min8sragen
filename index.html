@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EDUPAY | Education Payment & Student Savings</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1e3a8a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="EDUPAY">
+    
+    <!-- Favicon (SVG Inline) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg width='256' height='256' viewBox='0 0 256 256' fill='none' xmlns='http://www.w3.org/2000/svg'><rect width='256' height='256' rx='64' fill='%231E3A8A'/><path d='M128 48L216 88L128 128L40 88L128 48Z' fill='%23FBBF24'/><path d='M184 104V136C184 148 168 160 128 160C88 160 72 148 72 136V104L128 128L184 104Z' fill='%23E2E8F0' stroke='%23FBBF24' stroke-width='8'/><path d='M128 160V208M128 208L104 184M128 208L152 184' stroke='%23FBBF24' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+
+    <!-- PWA Inline Manifest -->
+    <link rel="manifest" id="manifest-placeholder">
+    <script>
+        const manifest = {
+            "name": "EDUPAY - Education Payment",
+            "short_name": "EDUPAY",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#1e3a8a",
+            "theme_color": "#1e3a8a",
+            "icons": [{"src": "data:image/svg+xml,<svg width='512' height='512' viewBox='0 0 256 256' fill='none' xmlns='http://www.w3.org/2000/svg'><rect width='256' height='256' rx='64' fill='%231E3A8A'/><path d='M128 48L216 88L128 128L40 88L128 48Z' fill='%23FBBF24'/><path d='M184 104V136C184 148 168 160 128 160C88 160 72 148 72 136V104L128 128L184 104Z' fill='%23E2E8F0' stroke='%23FBBF24' stroke-width='8'/><path d='M128 160V208M128 208L104 184M128 208L152 184' stroke='%23FBBF24' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/></svg>", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable"}]
+        };
+        const blobManifest = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        document.getElementById('manifest-placeholder').href = URL.createObjectURL(blobManifest);
+    </script>
+
+    <!-- PWA Inline Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swCode = `self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('activate', e => self.clients.claim()); self.addEventListener('fetch', e => {});`;
+                const blobSW = new Blob([swCode], {type: 'application/javascript'});
+                navigator.serviceWorker.register(URL.createObjectURL(blobSW)).then(() => console.log('PWA Ready')).catch(() => console.log('PWA SW Failed'));
+            });
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS (Muat lebih dulu) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        emerald: { 50: '#ecfdf5', 500: '#10b981', 600: '#059669', 700: '#047857' },
+                        navy: { 800: '#1e3a8a', 900: '#0f172a' },
+                        gold: { 400: '#fbbf24', 500: '#f59e0b' }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- External Libraries (Chart.js, SheetJS, HTML2Canvas, Lucide) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom CSS -->
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes loading { 0% { transform: scaleX(0); } 50% { transform: scaleX(1); } 100% { transform: scaleX(0); transform-origin: right; } }
+        .modal { transition: opacity 0.2s ease; }
+        .modal.active { opacity: 1; pointer-events: auto; }
+        #toast-container { transition: transform 0.3s ease-in-out; }
+        .toast-show { transform: translateY(0) !important; }
+        
+        /* Dark Mode CSS */
+        html.dark body { background-color: #0f172a; color: #f1f5f9; }
+        html.dark .bg-white { background-color: #1e293b !important; border-color: #334155 !important; }
+        html.dark .bg-slate-50, html.dark .bg-slate-100 { background-color: #0f172a !important; border-color: #334155 !important; }
+        html.dark .text-slate-800, html.dark .text-navy-900 { color: #f1f5f9 !important; }
+        html.dark .text-slate-700, html.dark .text-slate-600 { color: #cbd5e1 !important; }
+        html.dark .text-slate-500 { color: #94a3b8 !important; }
+        html.dark .border-slate-100, html.dark .border-slate-200, html.dark .border-slate-300 { border-color: #334155 !important; }
+        html.dark input, html.dark select, html.dark textarea { background-color: #1e293b !important; color: #f1f5f9 !important; border-color: #334155 !important; }
+        html.dark input:focus, html.dark select:focus { border-color: #10b981 !important; }
+        html.dark .modal-content { background-color: #1e293b !important; }
+
+        /* Print Styles */
+        @media print {
+            body * { visibility: hidden; background-color: white; }
+            body.printing-report #printable-report-area, body.printing-report #printable-report-area * { visibility: visible; color: black !important; }
+            body.printing-report #printable-report-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+            body.printing-savings #printable-savings-book, body.printing-savings #printable-savings-book * { visibility: visible; color: black !important; }
+            body.printing-savings #printable-savings-book { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+            body.printing-receipt #printable-receipt, body.printing-receipt #printable-receipt * { visibility: visible; color: black !important; }
+            body.printing-receipt #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
+            .no-print { display: none !important; }
+            #report-header-print { display: block !important; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased h-screen overflow-hidden flex flex-col">
+
+    <div id="splash-screen" class="fixed inset-0 bg-gradient-to-br from-emerald-600 to-navy-900 z-[9999] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="flex flex-col items-center gap-6 text-center text-white px-6 relative z-10">
+            <div id="splash-logo" class="w-72 h-auto mb-4 flex justify-center"></div>
+            <div class="w-24 h-1.5 bg-navy-900/30 rounded-full overflow-hidden mb-8">
+                <div class="w-full h-full bg-gold-400 rounded-full origin-left animate-[loading_1.5s_ease-in-out_infinite]"></div>
+            </div>
+            <div class="absolute bottom-[-100px] text-xs font-medium tracking-widest text-emerald-200/60 uppercase">Developed by Zalf Production</div>
+        </div>
+    </div>
+
+    <div id="login-screen" class="hidden fixed inset-0 z-40 bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+        <div class="absolute top-4 right-4 flex gap-2 z-50">
+            <button id="btn-install-login" class="hidden bg-emerald-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-md flex items-center gap-1 hover:bg-emerald-700 transition animate-bounce">
+                <i data-lucide="download" class="w-4 h-4"></i> Install App
+            </button>
+            <button onclick="themeManager.toggle()" class="p-2 text-slate-400 hover:text-emerald-600 transition bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm" title="Ganti Tema">
+                <i data-lucide="monitor" id="theme-icon-login" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 relative overflow-hidden min-h-[500px]">
+            
+            <!-- Login Role Selection -->
+            <div id="login-role-view" class="absolute inset-0 p-8 flex flex-col justify-center transition-transform duration-300 transform translate-x-0 w-full h-full bg-white dark:bg-slate-800">
+                <div id="login-logo" class="w-full h-auto max-w-sm mx-auto mb-10 flex justify-center"></div>
+                <h2 class="text-xl font-bold text-navy-900 dark:text-white text-center mb-6">Pilih Akses Masuk</h2>
+                <div class="space-y-3">
+                    <button onclick="ui.showLoginForm('admin')" class="w-full bg-navy-900 hover:bg-navy-800 text-white p-4 rounded-xl flex items-center gap-4 transition shadow-sm group">
+                        <div class="bg-white/20 p-2 rounded-lg group-hover:scale-110 transition"><i data-lucide="shield" class="w-6 h-6"></i></div>
+                        <div class="text-left"><p class="font-bold">Admin / Bendahara</p><p class="text-xs text-slate-300">Akses penuh kelola data</p></div>
+                    </button>
+                    <button onclick="ui.showLoginForm('guru')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-4 rounded-xl flex items-center gap-4 transition shadow-sm group">
+                        <div class="bg-white/20 p-2 rounded-lg group-hover:scale-110 transition"><i data-lucide="users" class="w-6 h-6"></i></div>
+                        <div class="text-left"><p class="font-bold">Guru / Wali Kelas</p><p class="text-xs text-emerald-100">Akses manajemen kelas</p></div>
+                    </button>
+                    <button onclick="ui.openModal('modal-student-portal')" class="w-full bg-white dark:bg-slate-700 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-600 p-4 rounded-xl flex items-center gap-4 transition shadow-sm group">
+                        <div class="bg-emerald-100 dark:bg-slate-800 p-2 rounded-lg text-emerald-700 dark:text-emerald-400 group-hover:scale-110 transition"><i data-lucide="graduation-cap" class="w-6 h-6"></i></div>
+                        <div class="text-left"><p class="font-bold">Siswa / Wali Murid</p><p class="text-xs text-emerald-700 dark:text-emerald-400">Cek tagihan & riwayat</p></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Login Credentials Form -->
+            <div id="login-form-view" class="absolute inset-0 p-8 flex flex-col justify-center transition-transform duration-300 transform translate-x-full w-full h-full bg-white dark:bg-slate-800">
+                <button type="button" onclick="ui.showRoleView()" class="absolute top-6 left-6 text-slate-500 hover:text-navy-900 dark:hover:text-white flex items-center gap-1 text-sm font-medium transition">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i> Kembali
+                </button>
+                <div class="text-center mb-8 mt-6">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-navy-100 text-navy-800 mb-3" id="login-form-icon">
+                        <i data-lucide="shield" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-navy-900 dark:text-white" id="login-form-title">Login</h2>
+                    <p class="text-slate-500 text-sm mt-1">Masukkan kredensial Anda</p>
+                </div>
+                <form id="login-form" class="space-y-4">
+                    <input type="hidden" id="login-role-type" value="admin">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
+                        <input type="email" id="login-email" required class="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition" placeholder="Masukkan email terdaftar">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
+                        <div class="relative">
+                            <input type="password" id="login-password" required class="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition" placeholder="••••••••">
+                            <button type="button" id="toggle-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                <i data-lucide="eye" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" id="login-btn" class="w-full bg-navy-900 hover:bg-navy-800 text-white font-semibold py-3 rounded-lg transition shadow-md flex justify-center items-center gap-2 mt-2">
+                        <span>MASUK</span>
+                    </button>
+                    <div class="text-xs text-center text-slate-400 mt-2">*Gunakan akun yang telah terdaftar di sistem.</div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" class="hidden flex-col md:flex-row h-full w-full flex">
+        
+        <!-- SIDEBAR (Desktop) -->
+        <aside class="hidden md:flex flex-col w-64 bg-navy-900 text-white shadow-xl flex-shrink-0 z-20">
+            <div class="h-16 flex items-center gap-3 px-6 border-b border-navy-800">
+                <div id="sidebar-logo" class="w-8 h-8 shrink-0"></div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-wider text-white leading-tight">EDUPAY</h1>
+                    <p class="text-[10px] text-emerald-400" id="sidebar-role">Admin Panel</p>
+                </div>
+            </div>
+            
+            <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1 no-scrollbar nav-menu">
+                <button data-page="dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-600 text-white transition">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
+                </button>
+                <p class="px-4 pt-4 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Master Data</p>
+                <button data-page="students" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-navy-800 hover:text-white transition">
+                    <i data-lucide="users" class="w-5 h-5"></i> Siswa
+                </button>
+                <button data-page="classes" id="nav-classes" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-navy-800 hover:text-white transition admin-only">
+                    <i data-lucide="building" class="w-5 h-5"></i> Kelas
+                </button>
+                <button data-page="paymentTypes" id="nav-payment-types" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-navy-800 hover:text-white transition admin-only">
+                    <i data-lucide="tags" class="w-5 h-5"></i> Jenis Tagihan
+                </button>
+                
+                <p class="px-4 pt-4 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Transaksi</p>
+                <button data-page="payments" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-navy-800 hover:text-white transition">
+                    <i data-lucide="credit-card" class="w-5 h-5"></i> Bayar Tagihan
+                </button>
+                <button data-page="savings" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-navy-800 hover:text-white transition">
+                    <i data-lucide="piggy-bank" class="w-5 h-5"></i> Tabungan
+                </button>
+                <button data-page="cash" id="nav-cash" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-navy-800 hover:text-white transition">
+                    <i data-lucide="wallet" class="w-5 h-5"></i> Kas Kelas
+                </button>
+
+                <p class="px-4 pt-4 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Lainnya</p>
+                <button data-page="reports" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-navy-800 hover:text-white transition">
+                    <i data-lucide="file-text" class="w-5 h-5"></i> Laporan
+                </button>
+                <button data-page="settings" id="nav-settings" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-navy-800 hover:text-white transition admin-only">
+                    <i data-lucide="settings" class="w-5 h-5"></i> Pengaturan
+                </button>
+            </nav>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-900 relative overflow-hidden w-full">
+            
+            <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 lg:px-8 flex-shrink-0 w-full z-10">
+                <div class="flex items-center gap-4">
+                    <div class="md:hidden flex items-center gap-2">
+                        <div id="header-mobile-logo" class="w-8 h-8 shrink-0"></div>
+                        <span class="font-bold text-navy-900 dark:text-white">EDUPAY</span>
+                    </div>
+                    <h2 id="page-title" class="hidden md:block text-xl font-bold text-slate-800 dark:text-white">Dashboard</h2>
+                </div>
+                
+                <div class="flex items-center gap-2 sm:gap-4">
+                    <button id="btn-install-header" class="hidden bg-emerald-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-md items-center gap-1 hover:bg-emerald-700 transition animate-bounce">
+                        <i data-lucide="download" class="w-4 h-4"></i> <span class="hidden sm:inline">Install</span>
+                    </button>
+                    <button onclick="themeManager.toggle()" class="p-2 text-slate-400 hover:text-emerald-600 transition bg-slate-50 dark:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-600" title="Ganti Tema">
+                        <i data-lucide="monitor" id="theme-icon" class="w-5 h-5"></i>
+                    </button>
+                    <div class="flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-3 sm:pl-4">
+                        <div class="w-8 h-8 rounded-full bg-navy-100 text-navy-800 flex items-center justify-center font-bold text-sm" id="header-avatar">AD</div>
+                        <div class="hidden sm:block text-sm">
+                            <p class="font-semibold text-slate-700 dark:text-slate-200 leading-tight" id="header-user-name">Admin</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400" id="header-user-role">Administrator</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="window.logout()" class="ml-1 sm:ml-2 p-2 text-red-500 hover:text-white hover:bg-red-500 rounded-full transition" title="Keluar">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- DYNAMIC VIEWS CONTAINER -->
+            <div id="views-container" class="flex-1 overflow-y-auto p-4 lg:p-8 w-full">
+                
+                <div id="view-dashboard" class="page-view fade-in space-y-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col">
+                            <div class="text-slate-500 text-[10px] sm:text-xs font-medium mb-1 flex items-center gap-1"><i data-lucide="users" class="w-4 h-4"></i> <span>TOTAL SISWA</span></div>
+                            <div class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-total-students">0</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col">
+                            <div class="text-slate-500 text-[10px] sm:text-xs font-medium mb-1 flex items-center gap-1"><i data-lucide="arrow-down-circle" class="w-4 h-4 text-emerald-500"></i> PEMASUKAN TAGIHAN</div>
+                            <div class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-income">Rp0</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col">
+                            <div class="text-slate-500 text-[10px] sm:text-xs font-medium mb-1 flex items-center gap-1"><i data-lucide="arrow-up-circle" class="w-4 h-4 text-red-500"></i> PENGELUARAN KAS</div>
+                            <div class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-expense">Rp0</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col">
+                            <div class="text-slate-500 text-[10px] sm:text-xs font-medium mb-1 flex items-center gap-1"><i data-lucide="piggy-bank" class="w-4 h-4 text-gold-500"></i> TABUNGAN SISWA</div>
+                            <div class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-savings">Rp0</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Grafik Pemasukan Tagihan (Tahun Ini)</h3>
+                            <div class="h-64 relative w-full">
+                                <canvas id="mainChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Transaksi Terakhir</h3>
+                            <div class="space-y-4" id="recent-transactions-list">
+                                <div class="text-center text-slate-500 py-8 text-sm">Belum ada transaksi</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-students" class="page-view hidden fade-in space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="relative w-full sm:w-64">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                            <input type="text" id="search-student" placeholder="Cari NIS atau Nama..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
+                        </div>
+                        
+                        <!-- Area Tombol Aksi - Hanya Untuk Admin -->
+                        <div id="student-action-buttons" class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <button type="button" onclick="window.downloadTemplate('students')" class="bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                                <i data-lucide="download" class="w-4 h-4"></i> Template Excel
+                            </button>
+                            <button type="button" onclick="document.getElementById('file-import-students').click()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                                <i data-lucide="upload" class="w-4 h-4"></i> Import Excel
+                            </button>
+                            <input type="file" id="file-import-students" accept=".xlsx, .xls" class="hidden">
+                            <button type="button" onclick="ui.openModal('modal-student')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Tambah Siswa
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[600px]">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                                    <th class="p-4 font-medium">NIS</th><th class="p-4 font-medium">Nama Siswa</th><th class="p-4 font-medium">Kelas</th><th class="p-4 font-medium">No. Tabungan</th><th class="p-4 font-medium text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-students" class="text-sm divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="view-paymentTypes" class="page-view hidden fade-in space-y-4">
+                    <div class="flex justify-between items-center">
+                        <p class="text-slate-500 text-sm">Kelola jenis tagihan sekolah.</p>
+                        <button onclick="ui.openModal('modal-payment-type')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Buat Jenis</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="grid-payment-types"></div>
+                </div>
+
+                <div id="view-payments" class="page-view hidden fade-in space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 max-w-2xl mx-auto">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4 border-b pb-2">Proses Pembayaran Tagihan</h3>
+                        <form id="form-process-payment" class="space-y-4">
+                            <div><label class="block text-sm font-medium text-slate-700 mb-1">Pilih Siswa</label><select id="pay-student-select" required class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500"></select></div>
+                            <div><label class="block text-sm font-medium text-slate-700 mb-1">Jenis Pembayaran</label><select id="pay-type-select" required class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500"></select></div>
+                            <div><label class="block text-sm font-medium text-slate-700 mb-1">Nominal (Rp)</label><input type="number" id="pay-nominal" required class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none font-mono text-lg"></div>
+                            <div><label class="block text-sm font-medium text-slate-700 mb-1">Metode</label><select id="pay-method" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none"><option value="Tunai">Tunai</option><option value="Transfer">Transfer Bank</option><option value="QRIS">QRIS</option></select></div>
+                            <button type="submit" class="w-full mt-4 bg-navy-900 text-white font-semibold py-3 rounded-lg flex justify-center items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5"></i> PROSES PEMBAYARAN</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="view-savings" class="page-view hidden fade-in space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col h-full">
+                            <h3 class="text-md font-semibold text-slate-800 mb-4">Rekening Siswa</h3>
+                            <select id="saving-student-select" class="w-full px-4 py-2 mb-6 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500"></select>
+                            <div class="flex-1 flex flex-col justify-center items-center p-6 bg-emerald-50 border border-emerald-100 rounded-xl text-center">
+                                <i data-lucide="piggy-bank" class="w-10 h-10 text-emerald-600 mb-2"></i>
+                                <p class="text-sm text-slate-600 mb-1">Saldo Saat Ini</p>
+                                <h2 class="text-3xl font-bold text-emerald-700 font-mono" id="saving-current-balance">Rp0</h2>
+                                <p class="text-xs text-slate-500 mt-2" id="saving-acc-info">-</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 mt-6">
+                                <button onclick="ui.openModal('modal-saving-trx', 'deposit')" class="bg-emerald-600 text-white py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50" id="btn-setor" disabled><i data-lucide="arrow-down-to-line" class="w-4 h-4"></i> SETOR</button>
+                                <button onclick="ui.openModal('modal-saving-trx', 'withdraw')" class="bg-red-600 text-white py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50" id="btn-tarik" disabled><i data-lucide="arrow-up-from-line" class="w-4 h-4"></i> TARIK</button>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 bg-white p-0 rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+                            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                <h3 class="text-md font-semibold text-slate-800">Riwayat Tabungan</h3>
+                                <button onclick="window.printSavingsBook()" class="text-navy-600 text-sm font-medium flex items-center gap-1 hover:underline disabled:opacity-50" id="btn-print-savings" disabled><i data-lucide="printer" class="w-4 h-4"></i> Cetak Buku</button>
+                            </div>
+                            <div class="flex-1 overflow-x-auto">
+                                <table class="w-full text-left border-collapse min-w-[500px]">
+                                    <thead><tr class="border-b border-slate-200 text-slate-500 text-xs uppercase bg-white"><th class="p-3">Tanggal</th><th class="p-3">Keterangan</th><th class="p-3 text-right">Mutasi</th><th class="p-3 text-right">Saldo Akhir</th></tr></thead>
+                                    <tbody id="table-saving-history" class="text-sm divide-y divide-slate-100"><tr><td colspan="4" class="p-8 text-center text-slate-400">Pilih siswa untuk melihat riwayat.</td></tr></tbody>
+                                </table>
+                            </div>
+                            <!-- Printable Savings Book Area -->
+                            <div id="printable-savings-book" class="hidden bg-white p-6">
+                                <div class="text-center mb-6 border-b-2 border-slate-800 pb-4">
+                                    <h2 class="text-2xl font-bold uppercase tracking-widest" id="ps-school">NAMA SEKOLAH</h2>
+                                    <p class="font-semibold text-lg mt-1">BUKU TABUNGAN SISWA</p>
+                                </div>
+                                <div class="mb-6 text-sm grid grid-cols-2 gap-4">
+                                    <div><p>Nama: <span id="ps-name" class="font-bold">-</span></p><p>NIS: <span id="ps-nis" class="font-bold">-</span></p></div>
+                                    <div class="text-right"><p>Kelas: <span id="ps-class" class="font-bold">-</span></p><p>No. Rek: <span id="ps-acc" class="font-bold">-</span></p></div>
+                                </div>
+                                <table class="w-full text-left text-sm border-collapse border border-slate-300">
+                                    <thead><tr class="border-b bg-slate-100"><th class="p-2 border border-slate-300">Tanggal</th><th class="p-2 border border-slate-300">Keterangan</th><th class="p-2 border border-slate-300 text-right">Mutasi</th><th class="p-2 border border-slate-300 text-right">Saldo Akhir</th></tr></thead>
+                                    <tbody id="ps-table-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-classes" class="page-view hidden fade-in space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-semibold text-slate-800">Daftar Kelas</h3>
+                        <button onclick="ui.openModal('modal-class')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Tambah Kelas</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4" id="grid-classes"></div>
+                </div>
+                
+                <div id="view-cash" class="page-view hidden fade-in space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col h-fit">
+                            <div class="text-slate-500 text-xs font-medium mb-1 flex items-center gap-1"><i data-lucide="wallet" class="w-4 h-4"></i> SALDO KAS KELAS</div>
+                            <div class="text-3xl font-bold text-navy-900 mb-6" id="cash-balance">Rp0</div>
+                            <div class="grid grid-cols-2 gap-2 mt-auto">
+                                <button onclick="ui.openModal('modal-cash', 'in')" class="bg-emerald-600 text-white py-2 rounded text-sm flex items-center justify-center gap-1"><i data-lucide="arrow-down-circle" class="w-4 h-4"></i> Terima</button>
+                                <button onclick="ui.openModal('modal-cash', 'out')" class="bg-red-600 text-white py-2 rounded text-sm flex items-center justify-center gap-1"><i data-lucide="arrow-up-circle" class="w-4 h-4"></i> Keluar</button>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-100 md:col-span-2 overflow-hidden flex flex-col">
+                            <div class="p-4 border-b border-slate-100 bg-slate-50 font-semibold text-slate-800">Riwayat Mutasi Kas</div>
+                            <div class="overflow-x-auto flex-1">
+                                <table class="w-full text-left text-sm min-w-[500px]">
+                                    <thead><tr class="text-slate-500 border-b"><th class="p-3">Tanggal</th><th class="p-3">Keterangan</th><th class="p-3 text-right">Nominal</th><th class="p-3">Tipe</th><th class="p-3 text-right">Aksi</th></tr></thead>
+                                    <tbody id="table-cash" class="divide-y divide-slate-100"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-settings" class="page-view hidden fade-in space-y-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4 border-b pb-2 flex items-center gap-2"><i data-lucide="school" class="w-5 h-5"></i> Profil Sekolah</h3>
+                            <form id="form-settings-school" class="space-y-4">
+                                <div><label class="block text-xs font-medium text-slate-700 mb-1">Nama Sekolah</label><input type="text" id="set-school-name" required class="w-full px-3 py-2 border rounded outline-none focus:border-emerald-500"></div>
+                                <div><label class="block text-xs font-medium text-slate-700 mb-1">Alamat</label><textarea id="set-school-address" class="w-full px-3 py-2 border rounded outline-none focus:border-emerald-500" rows="2"></textarea></div>
+                                <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded font-medium hover:bg-emerald-700">Simpan Profil</button>
+                            </form>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                                <h3 class="text-lg font-semibold text-slate-800 flex items-center gap-2"><i data-lucide="users-2" class="w-5 h-5"></i> Pengguna Sistem</h3>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="window.downloadTemplate('users')" class="text-xs bg-white border border-slate-200 text-slate-600 px-3 py-1 rounded flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i> Template</button>
+                                    <button type="button" onclick="document.getElementById('file-import-users').click()" class="text-xs bg-slate-800 text-white px-3 py-1 rounded flex items-center gap-1"><i data-lucide="upload" class="w-3 h-3"></i> Import</button>
+                                    <input type="file" id="file-import-users" accept=".xlsx, .xls" class="hidden">
+                                    <button type="button" onclick="ui.openModal('modal-user')" class="text-xs bg-navy-900 text-white px-3 py-1 rounded flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Tambah</button>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto max-h-[200px] border rounded">
+                                <table class="w-full text-left text-sm min-w-[400px]">
+                                    <thead class="bg-slate-50 sticky top-0 text-slate-500"><tr><th class="p-2">Nama</th><th class="p-2">Role/Kelas</th><th class="p-2 text-right">Aksi</th></tr></thead>
+                                    <tbody id="table-users" class="divide-y divide-slate-100"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-reports" class="page-view hidden fade-in space-y-4">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 class="text-lg font-semibold text-slate-800">Laporan Keuangan</h3>
+                            <button onclick="window.printReport()" class="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> Cetak</button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <div><label class="block text-xs mb-1 font-medium text-slate-700">Rentang Waktu</label>
+                                <select id="rep-time-range" class="w-full p-2 border rounded text-sm bg-white"><option value="today">Hari Ini</option><option value="this_week">Minggu Ini</option><option value="this_month" selected>Bulan Ini</option><option value="this_year">Tahun Ini</option><option value="all_time">Semua Waktu</option></select>
+                            </div>
+                            <div><label class="block text-xs mb-1 font-medium text-slate-700">Jenis Transaksi</label>
+                                <select id="rep-trx-type" class="w-full p-2 border rounded text-sm bg-white"><option value="all">Semua Transaksi</option><option value="payments">Bayar Tagihan</option><option value="savings">Tabungan Siswa</option><option value="cash">Kas Sekolah</option></select>
+                            </div>
+                            <div><label class="block text-xs mb-1 font-medium text-slate-700">Filter Kelas</label><select id="rep-class" class="w-full p-2 border rounded text-sm bg-white"><option value="">Semua Kelas</option></select></div>
+                            <div><label class="block text-xs mb-1 font-medium text-slate-700">Filter Siswa</label><select id="rep-student" class="w-full p-2 border rounded text-sm bg-white"><option value="">Semua Siswa</option></select></div>
+                            <div class="flex items-end">
+                                <button onclick="window.generateReport()" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium flex justify-center items-center gap-2 h-[38px]"><i data-lucide="filter" class="w-4 h-4"></i> Terapkan</button>
+                            </div>
+                        </div>
+                        
+                        <div id="printable-report-area" class="overflow-x-auto bg-white">
+                            <div id="report-header-print" class="hidden text-center mb-6 border-b-2 border-slate-800 pb-4">
+                                <h2 class="text-2xl font-bold text-slate-800" id="print-school-name">NAMA SEKOLAH</h2>
+                                <p class="text-slate-600 font-semibold">Laporan Arus Kas & Transaksi Keuangan</p>
+                                <p class="text-sm text-slate-500 mt-1" id="print-report-period">-</p>
+                            </div>
+                            <table class="w-full text-left text-sm min-w-[600px]">
+                                <thead><tr class="bg-slate-100 text-slate-600 border-b border-slate-300"><th class="p-3 font-semibold">Tanggal</th><th class="p-3 font-semibold">Referensi</th><th class="p-3 font-semibold">Kategori / Ket</th><th class="p-3 text-right font-semibold">Pemasukan</th><th class="p-3 text-right font-semibold">Pengeluaran</th><th class="p-3 text-center no-print">Aksi</th></tr></thead>
+                                <tbody id="table-report" class="divide-y divide-slate-100"><tr><td colspan="6" class="p-8 text-center text-slate-400">Pilih filter dan klik Terapkan.</td></tr></tbody>
+                                <tfoot class="bg-slate-50 font-bold border-t-2 border-slate-300">
+                                    <tr><td colspan="3" class="p-3 text-right text-slate-700 uppercase">Total Keseluruhan</td><td class="p-3 text-right text-emerald-600 text-base font-mono" id="rep-tot-in">Rp0</td><td class="p-3 text-right text-red-600 text-base font-mono" id="rep-tot-out">Rp0</td><td class="no-print"></td></tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+        
+        <nav class="md:hidden bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex justify-around p-2 pb-safe flex-shrink-0 z-30 w-full relative">
+            <button onclick="window.navigateToMobile('dashboard')" class="nav-btn-mobile flex flex-col items-center p-2 text-emerald-600 w-1/5" data-page="dashboard">
+                <i data-lucide="layout-dashboard" class="w-6 h-6"></i><span class="text-[10px] mt-1 font-medium">Home</span>
+            </button>
+            <button onclick="window.navigateToMobile('payments')" class="nav-btn-mobile flex flex-col items-center p-2 text-slate-400 w-1/5" data-page="payments">
+                <i data-lucide="credit-card" class="w-6 h-6"></i><span class="text-[10px] mt-1 font-medium">Bayar</span>
+            </button>
+            
+            <!-- Quick Action FAB -->
+            <div class="relative -top-6 w-1/5 flex justify-center">
+                <button onclick="ui.openModal('modal-quick-action')" class="w-14 h-14 bg-navy-900 rounded-full flex items-center justify-center text-white shadow-lg border-4 border-slate-50 dark:border-slate-900 hover:bg-navy-800 transition transform hover:scale-105">
+                    <i data-lucide="plus" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <button onclick="window.navigateToMobile('savings')" class="nav-btn-mobile flex flex-col items-center p-2 text-slate-400 w-1/5" data-page="savings">
+                <i data-lucide="piggy-bank" class="w-6 h-6"></i><span class="text-[10px] mt-1 font-medium">Tabung</span>
+            </button>
+            <button onclick="ui.openModal('modal-mobile-menu')" class="flex flex-col items-center p-2 text-slate-400 w-1/5 hover:text-navy-900 dark:hover:text-white transition">
+                <i data-lucide="menu" class="w-6 h-6"></i><span class="text-[10px] mt-1 font-medium">Menu</span>
+            </button>
+        </nav>
+    </div>
+
+    
+    <!-- Mobile Menu Modal -->
+    <div id="modal-mobile-menu" class="modal fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/60 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-white dark:bg-slate-800 w-full rounded-t-3xl shadow-2xl modal-content transform translate-y-full transition-transform duration-300 p-6 pb-10">
+            <div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-6"></div>
+            <h3 class="font-bold text-lg text-slate-800 dark:text-white mb-4">Menu Lengkap</h3>
+            <div class="grid grid-cols-4 gap-4">
+                <button onclick="window.navigateToMobile('students')" class="flex flex-col items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-emerald-600">
+                    <div class="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center"><i data-lucide="users" class="w-5 h-5"></i></div><span class="text-[10px] font-medium">Siswa</span>
+                </button>
+                <button onclick="window.navigateToMobile('classes')" class="flex flex-col items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-emerald-600 admin-only-mobile">
+                    <div class="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center"><i data-lucide="building" class="w-5 h-5"></i></div><span class="text-[10px] font-medium">Kelas</span>
+                </button>
+                <button onclick="window.navigateToMobile('paymentTypes')" class="flex flex-col items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-emerald-600 admin-only-mobile">
+                    <div class="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center"><i data-lucide="tags" class="w-5 h-5"></i></div><span class="text-[10px] font-medium">Tagihan</span>
+                </button>
+                <button onclick="window.navigateToMobile('cash')" id="mobile-nav-cash" class="flex flex-col items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-emerald-600">
+                    <div class="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center"><i data-lucide="wallet" class="w-5 h-5"></i></div><span class="text-[10px] font-medium">Kas Kelas</span>
+                </button>
+                <button onclick="window.navigateToMobile('reports')" class="flex flex-col items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-emerald-600">
+                    <div class="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center"><i data-lucide="file-text" class="w-5 h-5"></i></div><span class="text-[10px] font-medium">Laporan</span>
+                </button>
+                <button onclick="window.navigateToMobile('settings')" class="flex flex-col items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-emerald-600 admin-only-mobile">
+                    <div class="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center"><i data-lucide="settings" class="w-5 h-5"></i></div><span class="text-[10px] font-medium">Seting</span>
+                </button>
+            </div>
+            <button onclick="ui.closeMobileMenu()" class="mt-8 w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl">Tutup Menu</button>
+        </div>
+    </div>
+
+    <!-- Quick Action Modal -->
+    <div id="modal-quick-action" class="modal fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 opacity-0 pointer-events-none p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 modal-content transform scale-95 transition-transform duration-200 text-center">
+            <h3 class="font-bold text-lg text-slate-800 mb-6">Menu Cepat</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="ui.closeModal('modal-quick-action'); document.querySelector('[data-page=payments]').click();" class="p-4 bg-slate-50 border border-slate-100 rounded-xl flex flex-col items-center gap-2 hover:bg-emerald-50 transition">
+                    <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center"><i data-lucide="credit-card" class="w-6 h-6"></i></div><span class="text-sm font-medium">Bayar Tagihan</span>
+                </button>
+                <button onclick="ui.closeModal('modal-quick-action'); document.querySelector('[data-page=savings]').click();" class="p-4 bg-slate-50 border border-slate-100 rounded-xl flex flex-col items-center gap-2 hover:bg-blue-50 transition">
+                    <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><i data-lucide="piggy-bank" class="w-6 h-6"></i></div><span class="text-sm font-medium">Tabungan</span>
+                </button>
+            </div>
+            <button onclick="ui.closeModal('modal-quick-action')" class="mt-6 px-6 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm w-full">Tutup</button>
+        </div>
+    </div>
+
+    
+    <!-- Add Student Modal -->
+    <div id="modal-student" class="modal fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 opacity-0 pointer-events-none p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden modal-content">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center"><h3 class="font-bold text-slate-800">Tambah Siswa</h3><button type="button" onclick="ui.closeModal('modal-student')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+            <form id="form-student" class="p-5 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-medium text-slate-700 mb-1">NIS</label><input type="text" id="stu-nis" required class="w-full px-3 py-2 border rounded"></div>
+                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Kelas</label><select id="stu-class" required class="w-full px-3 py-2 border rounded"></select></div>
+                </div>
+                <div><label class="block text-xs font-medium text-slate-700 mb-1">Nama Lengkap</label><input type="text" id="stu-name" required class="w-full px-3 py-2 border rounded"></div>
+                <div><label class="block text-xs font-medium text-slate-700 mb-1">WhatsApp Wali (62xxx)</label><input type="text" id="stu-phone" class="w-full px-3 py-2 border rounded"></div>
+                <div class="pt-4 border-t"><button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded font-medium">Simpan Data</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Student Modal -->
+    <div id="modal-edit-student" class="modal fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 opacity-0 pointer-events-none p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden modal-content">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center"><h3 class="font-bold text-slate-800">Edit Siswa</h3><button type="button" onclick="ui.closeModal('modal-edit-student')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+            <form id="form-edit-student" class="p-5 space-y-4">
+                <input type="hidden" id="edit-stu-id">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-medium text-slate-700 mb-1">NIS</label><input type="text" id="edit-stu-nis" required class="w-full px-3 py-2 border rounded bg-slate-100" readonly></div>
+                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Kelas</label><select id="edit-stu-class" required class="w-full px-3 py-2 border rounded"></select></div>
+                </div>
+                <div><label class="block text-xs font-medium text-slate-700 mb-1">Nama Lengkap</label><input type="text" id="edit-stu-name" required class="w-full px-3 py-2 border rounded"></div>
+                <div><label class="block text-xs font-medium text-slate-700 mb-1">WhatsApp Wali</label><input type="text" id="edit-stu-phone" class="w-full px-3 py-2 border rounded"></div>
+                <div class="pt-4 border-t"><button type="submit" class="w-full bg-gold-500 text-white py-2 rounded font-bold">Simpan Perubahan</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Payment Type Modal -->
+    <div id="modal-payment-type" class="modal fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 opacity-0 pointer-events-none p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden modal-content">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center"><h3 class="font-bold text-slate-800">Jenis Pembayaran</h3><button type="button" onclick="ui.closeModal('modal-payment-type')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+            <form id="form-payment-type" class="p-5 space-y-4">
+                <div><label class="block text-xs font-medium text-slate-700 mb-1">Nama Pembayaran (Contoh: SPP, Seragam)</label><input type="text" id="pt-name" required class="w-full px-3 py-2 border rounded"></div>
+                <div><label class="block text-xs font-medium text-slate-700 mb-1">Nominal Default (Rp)</label><input type="number" id="pt-nominal" required class="w-full px-3 py-2 border rounded"></div>
+                <div><label class="block text-xs font-medium text-slate-700 mb-1">Sifat Tagihan</label><select id="pt-period" class="w-full px-3 py-2 border rounded"><option value="once">Sekali Bayar</option><option value="monthly">Bulanan</option><option value="free">Bebas Nominal</option></select></div>
+                <div class="pt-4 border-t"><button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded font-medium">Simpan</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Saving Trx Modal -->
+    <div id="modal-saving-trx" class="modal fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 opacity-0 pointer-events-none p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden modal-content">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center" id="saving-modal-header"><h3 class="font-bold text-slate-800" id="saving-modal-title">Transaksi Tabungan</h3><button type="button" onclick="ui.closeModal('modal-saving-trx')" class="text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+            <form id="form-saving-trx" class="p-5 space-y-4">
+                <input type="hidden" id="sav-type" value="">
+                <div class="text-center mb-4"><p class="text-xs text-slate-500">Siswa Terpilih</p><p class="font-semibold text-sm text-navy-900" id="sav-student-name">-</p></div>
+                <div><label class="block text-xs font-medium text-slate-700 mb-1">Nominal (Rp)</label><input type="number" id="sav-nominal" required class="w-full px-3 py-3 border-2 border-slate-200 rounded-lg text-lg font-mono text-center outline-none"></div>
+                <div><label class="block text-xs font-medium text-slate-700 mb-1">Keterangan</label><input type="text" id="sav-note" class="w-full px-3 py-2 border rounded text-sm"></div>
+                <div class="pt-4 border-t"><button type="submit" id="btn-submit-saving" class="w-full py-3 text-sm font-bold text-white rounded-lg shadow-md">PROSES</button></div>
+            </form>
+        </div>
+    </div>
+
+    
+    <!-- Receipt Modal (Professional) -->
+    <div id="modal-receipt" class="modal fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 opacity-0 pointer-events-none p-4 overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden modal-content my-auto">
+            <div id="printable-receipt" class="bg-white p-6 md:p-10 relative print:m-0 print:border-none print:p-0" style="-webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: white;">
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] z-0 overflow-hidden">
+                    <h1 class="text-[120px] font-black rotate-[-30deg] text-navy-900">EDUPAY</h1>
+                </div>
+                <div class="relative z-10 text-slate-800">
+                    <div class="flex flex-col md:flex-row items-center justify-between border-b-4 border-navy-900 pb-4 mb-6 gap-4 text-center md:text-left">
+                        <div class="flex items-center gap-4 flex-col md:flex-row">
+                            <div class="w-16 h-16 shrink-0 bg-navy-900 p-2 rounded-xl flex items-center justify-center text-white">
+                                <svg width="100%" height="100%" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M128 48L216 88L128 128L40 88L128 48Z" fill="#FBBF24"/><path d="M184 104V136C184 148 168 160 128 160C88 160 72 148 72 136V104L128 128L184 104Z" fill="#E2E8F0" stroke="#FBBF24" stroke-width="8"/><path d="M128 160V208M128 208L104 184M128 208L152 184" stroke="#FBBF24" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                            <div>
+                                <h2 class="font-bold text-2xl text-navy-900 tracking-wide uppercase" id="rcpt-school-name">SEKOLAH</h2>
+                                <p class="text-sm text-slate-600" id="rcpt-school-address">Alamat</p>
+                            </div>
+                        </div>
+                        <div class="md:text-right border-t pt-4 md:border-t-0 md:pt-0 w-full md:w-auto">
+                            <h1 class="text-xl font-bold text-slate-800 tracking-widest uppercase">KUITANSI</h1>
+                            <p class="text-xs text-slate-500 font-mono mt-1" id="rcpt-id">EDP-...</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col md:flex-row justify-between mb-6 text-sm gap-4">
+                        <div class="p-3 rounded-lg border border-slate-200 flex-1 bg-slate-50">
+                            <p class="text-slate-500 text-xs uppercase mb-1 font-semibold">Diterima dari:</p>
+                            <p class="font-bold text-slate-800 text-lg uppercase" id="rcpt-name">...</p>
+                            <p class="text-slate-600 font-medium mt-1">NIS: <span id="rcpt-nis" class="font-bold">...</span> | Kelas: <span id="rcpt-class" class="font-bold">...</span></p>
+                        </div>
+                        <div class="p-3 rounded-lg border border-slate-200 min-w-[150px] md:text-right bg-slate-50">
+                            <p class="text-slate-500 text-xs uppercase mb-1 font-semibold">Tanggal:</p>
+                            <p class="font-bold text-slate-800" id="rcpt-date">...</p>
+                        </div>
+                    </div>
+                    <table class="w-full text-left mb-6 border-collapse">
+                        <thead><tr class="bg-navy-900 text-white text-sm"><th class="py-3 px-4 rounded-tl-lg">Keterangan</th><th class="py-3 px-4 text-center">Metode</th><th class="py-3 px-4 text-right rounded-tr-lg">Nominal</th></tr></thead>
+                        <tbody><tr class="border-b-2 border-slate-200 bg-white"><td class="py-5 px-4 font-medium text-slate-800" id="rcpt-type">...</td><td class="py-5 px-4 text-center text-sm" id="rcpt-method">Tunai</td><td class="py-5 px-4 text-right font-bold font-mono text-lg" id="rcpt-amount">Rp...</td></tr></tbody>
+                        <tfoot><tr class="bg-slate-50 border-b-2"><td colspan="2" class="py-4 px-4 font-bold text-right text-sm text-slate-600">Total Dibayar</td><td class="py-4 px-4 text-right font-bold font-mono text-emerald-600 text-xl" id="rcpt-total">Rp...</td></tr></tfoot>
+                    </table>
+                    <div id="rcpt-savings-info" class="hidden bg-emerald-50 border border-emerald-200 p-3 rounded-lg mb-6 text-sm justify-between items-center text-emerald-800">
+                        <span class="font-medium">Sisa Saldo Tabungan:</span><span class="font-bold font-mono text-lg" id="rcpt-savings-bal">Rp0</span>
+                    </div>
+                    <div class="text-center pt-4 border-t border-slate-200">
+                        <p class="text-sm font-semibold text-slate-700 italic">"Tanda terima elektronik ini sah dan diterbitkan oleh sistem EDUPAY."</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Receipt Actions -->
+            <div class="p-4 bg-slate-100 border-t flex flex-wrap justify-end gap-3 rounded-b-xl">
+                <button type="button" onclick="ui.closeModal('modal-receipt')" class="px-4 py-2 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50 font-medium text-slate-600">Tutup</button>
+                <button type="button" onclick="window.printReceipt()" class="px-4 py-2 text-sm bg-navy-900 text-white rounded flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> Cetak</button>
+                <button type="button" onclick="ui.downloadReceipt()" class="px-4 py-2 text-sm bg-emerald-600 text-white rounded flex items-center gap-2"><i data-lucide="image" class="w-4 h-4"></i> Simpan Gambar</button>
+                <button type="button" onclick="ui.shareReceiptWA()" class="px-4 py-2 text-sm bg-[#25D366] hover:bg-[#128C7E] text-white rounded flex items-center gap-2 font-bold w-full sm:w-auto transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i> Bagikan ke WA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Portal (NIS Read-Only Dashboard) -->
+    <div id="modal-student-portal" class="modal fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 opacity-0 pointer-events-none p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden modal-content flex flex-col max-h-[95vh]">
+            <div class="p-4 border-b border-emerald-500 flex justify-between items-center bg-emerald-600 text-white">
+                <h3 class="font-bold flex items-center gap-2"><i data-lucide="graduation-cap" class="w-5 h-5"></i> Portal Siswa</h3><button onclick="ui.closeModal('modal-student-portal')" class="hover:text-emerald-200"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-4 flex gap-2 border-b border-slate-200 bg-slate-50">
+                <input type="text" id="portal-nis" placeholder="Masukkan NIS Anda..." class="flex-1 px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+                <button onclick="ui.searchPortal()" class="bg-navy-900 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"><i data-lucide="search" class="w-4 h-4"></i> Cek</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 relative bg-white">
+                <div id="portal-loading" class="hidden absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center text-emerald-600"><i data-lucide="loader-2" class="w-8 h-8 animate-spin"></i></div>
+                <div id="portal-error" class="hidden py-4 text-center text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg">Siswa tidak ditemukan. Periksa kembali NIS.</div>
+                
+                <div id="portal-result" class="hidden space-y-4 fade-in">
+                    <div class="bg-navy-900 text-white p-4 rounded-xl flex items-center gap-4 relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 opacity-10"><i data-lucide="user" class="w-32 h-32"></i></div>
+                        <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shrink-0"><i data-lucide="user" class="w-6 h-6"></i></div>
+                        <div class="relative z-10"><h4 class="font-bold text-lg leading-tight" id="portal-name">-</h4><p class="text-sm text-emerald-300 mt-1">NIS: <span id="portal-nis-text" class="font-mono">-</span> | Kelas: <span id="portal-class">-</span></p></div>
+                    </div>
+                    
+                    <div class="flex border-b border-slate-200 gap-4 font-medium text-sm">
+                        <button onclick="ui.switchPortalTab('tagihan')" id="tab-btn-tagihan" class="pb-2 border-b-2 border-emerald-600 text-emerald-600 transition">Tagihan Terbayar</button>
+                        <button onclick="ui.switchPortalTab('tabungan')" id="tab-btn-tabungan" class="pb-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition">Tabungan</button>
+                    </div>
+                    
+                    <!-- Tab Tagihan Lunas -->
+                    <div id="portal-tab-tagihan" class="space-y-4">
+                        <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 text-center"><p class="text-xs text-blue-700 font-semibold mb-1">Total Tagihan Dilunasi</p><p class="text-2xl font-bold font-mono text-blue-800" id="portal-tot-paid">Rp0</p></div>
+                        <div class="border rounded-lg overflow-hidden border-slate-200">
+                            <div class="bg-slate-50 p-2 text-xs font-bold text-slate-600 text-center border-b border-slate-200 uppercase">Seluruh Riwayat Pembayaran</div>
+                            <div class="max-h-64 overflow-y-auto p-2 space-y-2 bg-slate-50/50" id="portal-payments-list"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Tabungan -->
+                    <div id="portal-tab-tabungan" class="space-y-4 hidden">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <div class="bg-emerald-50 p-3 rounded-lg border border-emerald-100 sm:col-span-3 text-center"><p class="text-xs text-emerald-700 font-semibold mb-1">Saldo Tabungan Saat Ini</p><p class="text-2xl font-bold font-mono text-emerald-800" id="portal-balance">Rp0</p></div>
+                            <div class="bg-white p-3 rounded-lg border border-slate-200 text-center"><p class="text-[10px] text-slate-500 uppercase font-semibold">Total Masuk</p><p class="font-bold font-mono text-slate-800" id="portal-tot-in">Rp0</p></div>
+                            <div class="bg-white p-3 rounded-lg border border-slate-200 text-center"><p class="text-[10px] text-slate-500 uppercase font-semibold">Total Keluar</p><p class="font-bold font-mono text-red-600" id="portal-tot-out">Rp0</p></div>
+                        </div>
+                        <div class="border rounded-lg overflow-hidden border-slate-200">
+                            <div class="bg-slate-50 p-2 text-xs font-bold text-slate-600 text-center border-b border-slate-200 uppercase">Seluruh Mutasi Tabungan</div>
+                            <div class="max-h-64 overflow-y-auto"><table class="w-full text-left text-xs"><tbody id="portal-savings-list" class="divide-y divide-slate-100"></tbody></table></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="modal-confirm" class="modal fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/60 opacity-0 pointer-events-none p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs modal-content text-center p-6 transform scale-95 transition-transform duration-200">
+            <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="alert-triangle" class="w-8 h-8"></i></div>
+            <h3 id="confirm-title" class="font-bold text-lg text-slate-800 mb-2">Konfirmasi</h3>
+            <p id="confirm-message" class="text-sm text-slate-500 mb-6">Yakin melanjutkan?</p>
+            <div class="flex gap-3">
+                <button onclick="ui.closeModal('modal-confirm')" class="flex-1 py-2 bg-slate-100 rounded-lg font-medium text-slate-700">Batal</button>
+                <button id="btn-confirm-ok" class="flex-1 py-2 bg-red-600 text-white rounded-lg font-medium">Ya</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Trx Modal -->
+    <div id="modal-edit-trx" class="modal fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 opacity-0 pointer-events-none p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden modal-content">
+            <div class="p-4 border-b flex justify-between items-center"><h3 class="font-bold">Edit Transaksi</h3><button type="button" onclick="ui.closeModal('modal-edit-trx')"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+            <form id="form-edit-trx" class="p-5 space-y-4">
+                <input type="hidden" id="edit-trx-id"><input type="hidden" id="edit-trx-col">
+                <div class="bg-slate-100 p-3 rounded text-xs mb-2"><span class="font-bold block mb-1">Asli:</span><span id="edit-original-info">...</span></div>
+                <div><label class="block text-xs font-medium mb-1">Nominal Baru</label><input type="number" id="edit-trx-nominal" required class="w-full px-3 py-2 border rounded font-mono"></div>
+                <div><label class="block text-xs font-medium mb-1">Keterangan Baru</label><input type="text" id="edit-trx-note" class="w-full px-3 py-2 border rounded text-sm"></div>
+                <div class="pt-4 border-t flex justify-end gap-2"><button type="submit" class="px-4 py-2 text-sm bg-gold-500 text-white font-bold rounded">Simpan Perubahan</button></div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Class Modal -->
+    <div id="modal-class" class="modal fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 opacity-0 pointer-events-none p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden modal-content">
+            <div class="p-4 border-b flex justify-between items-center"><h3 class="font-bold">Tambah Kelas</h3><button type="button" onclick="ui.closeModal('modal-class')"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+            <form id="form-class" class="p-5 space-y-4">
+                <div><label class="block text-xs font-medium mb-1">Nama Kelas</label><input type="text" id="cls-name" required class="w-full px-3 py-2 border rounded"></div>
+                <div><label class="block text-xs font-medium mb-1">Wali Kelas</label><input type="text" id="cls-teacher" class="w-full px-3 py-2 border rounded"></div>
+                <div class="pt-4 border-t"><button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded font-medium">Simpan</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cash Modal -->
+    <div id="modal-cash" class="modal fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 opacity-0 pointer-events-none p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden modal-content">
+            <div class="p-4 border-b flex justify-between items-center" id="cash-modal-header"><h3 class="font-bold" id="cash-modal-title">Mutasi Kas</h3><button type="button" onclick="ui.closeModal('modal-cash')"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+            <form id="form-cash" class="p-5 space-y-4">
+                <input type="hidden" id="cash-type" value="in">
+                <div id="cash-class-container"><label class="block text-xs font-medium mb-1">Kelas</label><select id="cash-class" class="w-full px-3 py-2 border rounded"></select></div>
+                <div><label class="block text-xs font-medium mb-1">Keterangan</label><input type="text" id="cash-note" required class="w-full px-3 py-2 border rounded"></div>
+                <div><label class="block text-xs font-medium mb-1">Nominal</label><input type="number" id="cash-nominal" required class="w-full px-3 py-2 border rounded font-mono"></div>
+                <div class="pt-4 border-t"><button type="submit" class="w-full bg-navy-900 text-white py-2 rounded font-medium">Simpan</button></div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- User Modal -->
+    <div id="modal-user" class="modal fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 opacity-0 pointer-events-none p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden modal-content">
+            <div class="p-4 border-b flex justify-between items-center"><h3 class="font-bold">Tambah Pengguna</h3><button type="button" onclick="ui.closeModal('modal-user')"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+            <form id="form-user" class="p-5 space-y-4">
+                <div><label class="block text-xs font-medium mb-1">Nama</label><input type="text" id="usr-name" required class="w-full px-3 py-2 border rounded"></div>
+                <div><label class="block text-xs font-medium mb-1">Email Firebase</label><input type="email" id="usr-email" required class="w-full px-3 py-2 border rounded"></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="block text-xs font-medium mb-1">Role</label><select id="usr-role" class="w-full px-3 py-2 border rounded"><option value="Guru">Guru</option><option value="Admin">Admin</option></select></div>
+                    <div><label class="block text-xs font-medium mb-1">Wali Kelas</label><select id="usr-class" class="w-full px-3 py-2 border rounded"></select></div>
+                </div>
+                <div class="pt-4 border-t"><button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded font-medium">Simpan</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-container" class="fixed top-4 right-4 z-[100] transform -translate-y-24 transition-transform duration-300">
+        <div class="bg-navy-900 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 border-l-4 border-emerald-500">
+            <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i><span id="toast-message" class="text-sm font-medium">Berhasil.</span>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        
+        // --- MASUKKAN KONFIGURASI FIREBASE DI SINI ---
+        const firebaseConfig = {
+  apiKey: "AIzaSyDW0KH_WatVLpf3SildWAyCylO06KPkfEI",
+  authDomain: "edupay-3b3dc.firebaseapp.com",
+  projectId: "edupay-3b3dc",
+  storageBucket: "edupay-3b3dc.firebasestorage.app",
+  messagingSenderId: "763119320315",
+  appId: "1:763119320315:web:82631eaaee7a9f056f045e"
+};
+
+        /* =========================
+           LOGO ASSETS (SVG)
+           ========================= */
+        const LOGO_ASSETS = {
+            icon: `<svg width="100%" height="100%" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="256" height="256" rx="64" fill="#1E3A8A"/><path d="M128 48L216 88L128 128L40 88L128 48Z" fill="#FBBF24"/><path d="M184 104V136C184 148 168 160 128 160C88 160 72 148 72 136V104L128 128L184 104Z" fill="#E2E8F0" stroke="#FBBF24" stroke-width="8"/><path d="M128 160V208M128 208L104 184M128 208L152 184" stroke="#FBBF24" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+            full: `<svg width="100%" height="100%" viewBox="0 0 600 150" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="130" height="130" rx="32" fill="#1E3A8A"/><path d="M75 35L120 55L75 75L30 55L75 35Z" fill="#FBBF24"/><path d="M103 63V79C103 85 95 91 75 91C55 91 47 85 47 79V63L75 75L103 63Z" fill="#E2E8F0" stroke="#FBBF24" stroke-width="4"/><path d="M75 91V115M75 115L63 103M75 115L87 103" stroke="#FBBF24" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><text x="160" y="90" font-family="Inter, sans-serif" font-weight="bold" font-size="72" fill="#1E3A8A">EDUPAY</text><text x="160" y="125" font-family="Inter, sans-serif" font-weight="medium" font-size="20" fill="#64748B">Sistem Pembayaran & Tabungan Siswa</text></svg>`,
+            fullWhite: `<svg width="100%" height="100%" viewBox="0 0 600 150" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="130" height="130" rx="32" fill="#FBBF24"/><path d="M75 35L120 55L75 75L30 55L75 35Z" fill="#FFFFFF"/><path d="M103 63V79C103 85 95 91 75 91C55 91 47 85 47 79V63L75 75L103 63Z" fill="#E2E8F0" stroke="#FFFFFF" stroke-width="4"/><path d="M75 91V115M75 115L63 103M75 115L87 103" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><text x="160" y="90" font-family="Inter, sans-serif" font-weight="bold" font-size="72" fill="#FFFFFF">EDUPAY</text><text x="160" y="125" font-family="Inter, sans-serif" font-weight="medium" font-size="20" fill="#CBD5E1">Sistem Pembayaran & Tabungan Siswa</text></svg>`
+        };
+
+        document.getElementById('splash-logo').innerHTML = LOGO_ASSETS.fullWhite;
+        document.getElementById('sidebar-logo').innerHTML = LOGO_ASSETS.icon;
+        document.getElementById('header-mobile-logo').innerHTML = LOGO_ASSETS.icon;
+
+        let app, auth;
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
+
+        if (isFirebaseConfigured) {
+            try { app = initializeApp(firebaseConfig); auth = getAuth(app); console.log("Firebase Terhubung");
+            } catch (e) { console.error("Firebase Error:", e); }
+        }
+
+        /* =========================
+           APP STATE (Local DB)
+           ========================= */
+        const state = { user: null, students: [], paymentTypes: [], classes: [], payments: [], savingsTransactions: [], cash: [], users: [], cashBalance: 0, schoolProfile: {}, currentStudent: null };
+        const dbLocal = {
+            get: (key) => JSON.parse(localStorage.getItem('edupay_' + key) || '[]'),
+            set: (key, data) => localStorage.setItem('edupay_' + key, JSON.stringify(data)),
+            getObj: (key, def = {}) => JSON.parse(localStorage.getItem('edupay_' + key) || JSON.stringify(def)),
+            setObj: (key, data) => localStorage.setItem('edupay_' + key, JSON.stringify(data))
+        };
+
+        function initDefaultSettings() {
+            if (!localStorage.getItem('edupay_profile')) {
+                state.schoolProfile = { name: 'MIN 8 Sragen', address: 'Jl. Pendidikan, Sragen, Jawa Tengah' };
+                dbLocal.setObj('profile', state.schoolProfile);
+            } else { state.schoolProfile = dbLocal.getObj('profile'); }
+        }
+        initDefaultSettings();
+
+        /* =========================
+           THEME & PWA
+           ========================= */
+        window.themeManager = {
+            mode: localStorage.getItem('edupay_theme') || 'auto',
+            init() { this.apply(); },
+            toggle() {
+                if (this.mode === 'auto') this.mode = 'dark'; else if (this.mode === 'dark') this.mode = 'light'; else this.mode = 'auto';
+                localStorage.setItem('edupay_theme', this.mode); this.apply(); utils.showToast(`Tema: ${this.mode.toUpperCase()}`);
+            },
+            apply() {
+                const isDark = this.mode === 'dark' || (this.mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                if (isDark) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark');
+                
+                ['theme-icon', 'theme-icon-login'].forEach(id => {
+                    const icon = document.getElementById(id); if (icon) {
+                        if (this.mode === 'auto') icon.setAttribute('data-lucide', 'monitor');
+                        else if (this.mode === 'dark') icon.setAttribute('data-lucide', 'moon');
+                        else icon.setAttribute('data-lucide', 'sun');
+                    }
+                });
+                const loginLogo = document.getElementById('login-logo');
+                if(loginLogo) loginLogo.innerHTML = isDark ? LOGO_ASSETS.fullWhite : LOGO_ASSETS.full;
+                if(window.lucide) window.lucide.createIcons();
+            }
+        };
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault(); deferredPrompt = e;
+            document.getElementById('btn-install-login').classList.remove('hidden');
+            document.getElementById('btn-install-header').classList.remove('hidden'); document.getElementById('btn-install-header').classList.add('flex');
+        });
+        const installApp = async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') { document.getElementById('btn-install-login').classList.add('hidden'); document.getElementById('btn-install-header').classList.add('hidden'); }
+                deferredPrompt = null;
+            }
+        };
+        document.getElementById('btn-install-login').addEventListener('click', installApp); document.getElementById('btn-install-header').addEventListener('click', installApp);
+
+        /* =========================
+           UTILITIES
+           ========================= */
+        const utils = {
+            formatRupiah: (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number),
+            generateId: (prefix = 'EDP') => `${prefix}-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+            showToast: (msg, type = 'success') => {
+                const toast = document.getElementById('toast-container'); document.getElementById('toast-message').innerText = msg;
+                toast.firstElementChild.className = `bg-navy-900 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 border-l-4 ${type === 'error' ? 'border-red-500' : 'border-emerald-500'}`;
+                toast.classList.add('toast-show'); setTimeout(() => toast.classList.remove('toast-show'), 3000);
+            },
+            formatDate: (timestamp) => timestamp ? new Date(timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'
+        };
+
+        /* =========================
+           UI CONTROLLER & LOGIC
+           ========================= */
+        window.ui = {
+            showRoleView: () => {
+                document.getElementById('login-form-view').classList.add('translate-x-full');
+                document.getElementById('login-role-view').classList.remove('-translate-x-full', 'hidden'); document.getElementById('login-role-view').classList.add('translate-x-0');
+            },
+            showLoginForm: (role) => {
+                const title = document.getElementById('login-form-title'); const icon = document.getElementById('login-form-icon');
+                const roleType = document.getElementById('login-role-type'); const emailInp = document.getElementById('login-email'); const passInp = document.getElementById('login-password');
+                
+                roleType.value = role; emailInp.value = ''; passInp.value = '';
+                if (role === 'admin') { 
+                    title.innerText = 'Login Admin / Bendahara'; icon.innerHTML = '<i data-lucide="shield" class="w-6 h-6"></i>'; icon.className = 'inline-flex items-center justify-center w-12 h-12 rounded-full bg-navy-100 text-navy-800 mb-3'; 
+                } else { 
+                    title.innerText = 'Login Guru / Wali Kelas'; icon.innerHTML = '<i data-lucide="users" class="w-6 h-6"></i>'; icon.className = 'inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 mb-3'; 
+                }
+                document.getElementById('login-role-view').classList.remove('translate-x-0'); document.getElementById('login-role-view').classList.add('-translate-x-full');
+                document.getElementById('login-form-view').classList.remove('translate-x-full'); window.lucide.createIcons();
+            },
+            openModal: (id, params = null) => {
+                const modal = document.getElementById(id); if(!modal) return;
+                if(id === 'modal-saving-trx') {
+                    if(!state.currentStudent) return utils.showToast('Pilih siswa terlebih dahulu!', 'error');
+                    document.getElementById('sav-type').value = params; document.getElementById('sav-student-name').innerText = state.currentStudent.name; document.getElementById('sav-nominal').value = '';
+                    const isDep = params === 'deposit'; document.getElementById('saving-modal-title').innerText = isDep ? 'Setor Tabungan' : 'Tarik Tabungan';
+                    document.getElementById('saving-modal-header').className = `p-4 border-b flex justify-between items-center ${isDep ? 'bg-emerald-50' : 'bg-red-50'}`;
+                    const btn = document.getElementById('btn-submit-saving'); btn.className = `w-full py-3 text-sm font-bold text-white rounded-lg shadow-md ${isDep ? 'bg-emerald-600' : 'bg-red-600'}`; btn.innerText = isDep ? 'SIMPAN SETORAN' : 'PROSES PENARIKAN';
+                }
+                if(id === 'modal-cash') {
+                    const isIn = params === 'in'; document.getElementById('cash-type').value = params; document.getElementById('cash-modal-title').innerText = isIn ? 'Pemasukan Kas' : 'Pengeluaran Kas';
+                    document.getElementById('cash-modal-header').className = `p-4 border-b flex justify-between items-center ${isIn ? 'bg-emerald-50' : 'bg-red-50'}`;
+                }
+                modal.classList.remove('pointer-events-none'); modal.classList.add('active');
+                if(modal.querySelector('.modal-content')) { modal.querySelector('.modal-content').classList.remove('scale-95', 'translate-y-full'); modal.querySelector('.modal-content').classList.add('scale-100', 'translate-y-0'); }
+            },
+            closeModal: (id) => {
+                const modal = document.getElementById(id); if(!modal) return;
+                modal.classList.remove('active'); modal.classList.add('pointer-events-none');
+                if(modal.querySelector('.modal-content')) { modal.querySelector('.modal-content').classList.remove('scale-100', 'translate-y-0'); modal.querySelector('.modal-content').classList.add('scale-95', 'translate-y-full'); }
+            },
+            closeMobileMenu: () => { ui.closeModal('modal-mobile-menu'); },
+            confirmAction: (title, message, btnText, onConfirmCallback) => {
+                document.getElementById('confirm-title').innerText = title; document.getElementById('confirm-message').innerText = message;
+                const btnOk = document.getElementById('btn-confirm-ok'); btnOk.innerText = btnText;
+                const newBtnOk = btnOk.cloneNode(true); btnOk.parentNode.replaceChild(newBtnOk, btnOk);
+                newBtnOk.addEventListener('click', () => { ui.closeModal('modal-confirm'); onConfirmCallback(); });
+                ui.openModal('modal-confirm');
+            },
+            showReceipt: (data, isSavings = false, savBal = 0) => {
+                document.getElementById('rcpt-school-name').innerText = state.schoolProfile.name; document.getElementById('rcpt-school-address').innerText = state.schoolProfile.address || '-';
+                document.getElementById('rcpt-id').innerText = data.id || data.trxId; document.getElementById('rcpt-date').innerText = utils.formatDate(data.timestamp || new Date());
+                const student = state.students.find(s => s.id === data.studentId) || { nis: '-', name: data.studentName || 'Siswa', className: data.studentClass || '-'};
+                document.getElementById('rcpt-name').innerText = student.name; document.getElementById('rcpt-nis').innerText = student.nis; document.getElementById('rcpt-class').innerText = student.className;
+                
+                if (isSavings) {
+                    document.getElementById('rcpt-type').innerText = data.type === 'deposit' ? 'Setoran Tabungan: ' + (data.note||'') : 'Penarikan Tabungan: ' + (data.note||'');
+                    document.getElementById('rcpt-method').innerText = '-'; document.getElementById('rcpt-savings-info').classList.remove('hidden'); document.getElementById('rcpt-savings-info').classList.add('flex');
+                    document.getElementById('rcpt-savings-bal').innerText = utils.formatRupiah(savBal);
+                } else {
+                    document.getElementById('rcpt-type').innerText = data.paymentName; document.getElementById('rcpt-method').innerText = data.method;
+                    document.getElementById('rcpt-savings-info').classList.add('hidden'); document.getElementById('rcpt-savings-info').classList.remove('flex');
+                }
+                document.getElementById('rcpt-amount').innerText = utils.formatRupiah(data.nominal); document.getElementById('rcpt-total').innerText = utils.formatRupiah(data.nominal);
+                ui.openModal('modal-receipt');
+            },
+            downloadReceipt: () => {
+                const rcpt = document.getElementById('printable-receipt'); const isDark = document.documentElement.classList.contains('dark'); if (isDark) document.documentElement.classList.remove('dark');
+                html2canvas(rcpt, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+                    if (isDark) document.documentElement.classList.add('dark');
+                    const link = document.createElement('a'); link.download = `Kuitansi-${document.getElementById('rcpt-id').innerText}.png`; link.href = canvas.toDataURL('image/png'); link.click(); utils.showToast('Struk disimpan');
+                });
+            },
+            shareReceiptWA: async () => {
+                const rcpt = document.getElementById('printable-receipt'); const isDark = document.documentElement.classList.contains('dark'); if(isDark) document.documentElement.classList.remove('dark');
+                const btn = document.querySelector('[onclick="ui.shareReceiptWA()"]'); const origText = btn.innerHTML; btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses...`;
+                
+                try {
+                    const canvas = await html2canvas(rcpt, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+                    if (isDark) document.documentElement.classList.add('dark');
+                    canvas.toBlob(async (blob) => {
+                        const file = new File([blob], `Kuitansi-${document.getElementById('rcpt-id').innerText}.png`, { type: 'image/png' });
+                        const shareData = { files: [file], title: 'Bukti Pembayaran EDUPAY', text: `Berikut bukti transaksi atas nama ${document.getElementById('rcpt-name').innerText}.` };
+                        if (navigator.canShare && navigator.canShare(shareData)) { await navigator.share(shareData); utils.showToast('Berhasil membagikan kuitansi'); } 
+                        else { const textWa = `*BUKTI TRANSAKSI EDUPAY*\n\nID: ${document.getElementById('rcpt-id').innerText}\nNama: ${document.getElementById('rcpt-name').innerText}\nKelas: ${document.getElementById('rcpt-class').innerText}\nTransaksi: ${document.getElementById('rcpt-type').innerText}\nNominal: ${document.getElementById('rcpt-total').innerText}\n\nTerima kasih.`; window.open(`https://wa.me/?text=${encodeURIComponent(textWa)}`); }
+                        btn.innerHTML = origText; window.lucide.createIcons();
+                    }, 'image/png');
+                } catch(e) { if(isDark) document.documentElement.classList.add('dark'); btn.innerHTML = origText; window.lucide.createIcons(); utils.showToast('Gagal memproses gambar', 'error'); }
+            },
+            switchPortalTab: (tabId) => {
+                document.getElementById('portal-tab-tagihan').classList.add('hidden'); document.getElementById('portal-tab-tabungan').classList.add('hidden');
+                document.getElementById('tab-btn-tagihan').className = "pb-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition"; document.getElementById('tab-btn-tabungan').className = "pb-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition";
+                document.getElementById(`portal-tab-${tabId}`).classList.remove('hidden'); document.getElementById(`tab-btn-${tabId}`).className = "pb-2 border-b-2 border-emerald-600 text-emerald-600 transition";
+            },
+            searchPortal: () => {
+                const nis = document.getElementById('portal-nis').value.trim(); if(!nis) return;
+                document.getElementById('portal-result').classList.add('hidden'); document.getElementById('portal-error').classList.add('hidden'); document.getElementById('portal-loading').classList.remove('hidden');
+                
+                setTimeout(() => {
+                    state.students = dbLocal.get('students'); state.payments = dbLocal.get('payments'); state.savingsTransactions = dbLocal.get('savingsTransactions');
+                    const student = state.students.find(s => s.nis === nis);
+                    if(!student) { document.getElementById('portal-loading').classList.add('hidden'); document.getElementById('portal-error').classList.remove('hidden'); return; }
+                    
+                    document.getElementById('portal-name').innerText = student.name; document.getElementById('portal-class').innerText = student.className; document.getElementById('portal-nis-text').innerText = student.nis; document.getElementById('portal-balance').innerText = utils.formatRupiah(student.balance || 0);
+                    
+                    let totIn = 0; let totOut = 0; const savs = state.savingsTransactions.filter(p => p.studentId === student.id).sort((a,b) => b.timestamp - a.timestamp);
+                    const sContainer = document.getElementById('portal-savings-list'); sContainer.innerHTML = '';
+                    if(savs.length === 0) sContainer.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada mutasi tabungan.</td></tr>';
+                    savs.forEach(s => { const isDep = s.type === 'deposit'; if(isDep) totIn += s.nominal; else totOut += s.nominal;
+                        sContainer.innerHTML += `<tr><td class="p-2 border-b w-24">${utils.formatDate(s.timestamp)}</td><td class="p-2 border-b font-medium ${isDep?'text-emerald-600':'text-red-600'}">${isDep?'Setor':'Tarik'}</td><td class="p-2 border-b text-right font-mono">${isDep?'+':'-'}${utils.formatRupiah(s.nominal)}</td><td class="p-2 border-b text-right font-mono font-bold">${utils.formatRupiah(s.balanceAfter)}</td></tr>`;
+                    });
+                    document.getElementById('portal-tot-in').innerText = utils.formatRupiah(totIn); document.getElementById('portal-tot-out').innerText = utils.formatRupiah(totOut);
+                    
+                    let totPaid = 0; const pays = state.payments.filter(p => p.studentId === student.id).sort((a,b) => b.timestamp - a.timestamp);
+                    const pContainer = document.getElementById('portal-payments-list'); pContainer.innerHTML = '';
+                    if(pays.length === 0) pContainer.innerHTML = '<p class="text-xs text-center text-slate-500 py-4">Belum ada riwayat tagihan.</p>';
+                    pays.forEach(p => { totPaid += p.nominal;
+                        pContainer.innerHTML += `<div class="flex justify-between items-center bg-white p-3 rounded border border-slate-200 shadow-sm"><div><p class="font-bold text-navy-900">${p.paymentName}</p><p class="text-[10px] text-slate-500">${utils.formatDate(p.timestamp)}</p></div><div class="text-right"><p class="font-bold text-emerald-600 font-mono">${utils.formatRupiah(p.nominal)}</p><span class="text-[9px] bg-emerald-100 text-emerald-700 px-1 rounded font-bold">LUNAS</span></div></div>`;
+                    });
+                    document.getElementById('portal-tot-paid').innerText = utils.formatRupiah(totPaid);
+                    
+                    document.getElementById('portal-loading').classList.add('hidden'); document.getElementById('portal-result').classList.remove('hidden'); ui.switchPortalTab('tagihan');
+                }, 600);
+            }
+        };
+        window.ui = window.ui;
+
+        const navigateTo = (pageId) => {
+            const titles = { dashboard: 'Dashboard', students: 'Data Siswa', paymentTypes: 'Jenis Tagihan', payments: 'Proses Pembayaran', savings: 'Tabungan Siswa', settings: 'Pengaturan', classes: 'Daftar Kelas', cash: 'Mutasi Kas', reports: 'Laporan Keuangan' };
+            document.getElementById('page-title').innerText = titles[pageId] || pageId;
+            document.querySelectorAll('.page-view').forEach(v => v.classList.add('hidden')); const view = document.getElementById(`view-${pageId}`); if(view) view.classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => { if(btn.dataset.page === pageId) { btn.classList.remove('text-slate-300', 'hover:bg-navy-800'); btn.classList.add('bg-emerald-600', 'text-white'); } else { btn.classList.add('text-slate-300', 'hover:bg-navy-800'); btn.classList.remove('bg-emerald-600', 'text-white'); } });
+            document.querySelectorAll('.nav-btn-mobile').forEach(btn => { if(btn.dataset.page === pageId) { btn.classList.remove('text-slate-400'); btn.classList.add('text-emerald-600'); } else { btn.classList.add('text-slate-400'); btn.classList.remove('text-emerald-600'); } });
+            if(pageId === 'dashboard') initChart();
+        };
+        window.navigateToMobile = (pageId) => { navigateTo(pageId); window.ui.closeMobileMenu(); };
+        document.querySelectorAll('[data-page]').forEach(btn => btn.addEventListener('click', (e) => navigateTo(e.currentTarget.dataset.page)));
+
+        /* =========================
+           AUTH, LOGIN & LOGOUT
+           ========================= */
+        window.checkAuthStatus = function() {
+            window.themeManager.init(); const storedUser = localStorage.getItem('edupay_user');
+            if(storedUser) {
+                state.user = JSON.parse(storedUser);
+                document.getElementById('login-screen').classList.add('hidden'); document.getElementById('app-container').classList.remove('hidden');
+                document.getElementById('header-user-name').innerText = state.user.email.split('@')[0].toUpperCase(); 
+                document.getElementById('header-user-role').innerText = state.user.role === 'Admin' ? 'Administrator' : `Guru (${state.user.className})`; 
+                document.getElementById('header-avatar').innerText = state.user.email.substring(0, 2).toUpperCase(); 
+                document.getElementById('sidebar-role').innerText = state.user.role === 'Admin' ? 'Admin Panel' : `Wali Kelas: ${state.user.className}`;
+
+                // ROLE BASED ACCESS CONTROL
+                if(state.user.role === 'Guru') {
+                    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                    document.querySelectorAll('.admin-only-mobile').forEach(el => el.style.display = 'none');
+                    document.getElementById('student-action-buttons').style.display = 'none'; // Sembunyikan Tombol Tambah/Import Siswa
+                    
+                    // Guru tanpa Kelas disembunyikan kasnya
+                    if(!state.user.className || state.user.className === '-') { 
+                        document.getElementById('nav-cash').style.display = 'none'; 
+                        if(document.getElementById('mobile-nav-cash')) document.getElementById('mobile-nav-cash').style.display = 'none';
+                    } else { 
+                        document.getElementById('nav-cash').style.display = 'flex'; 
+                        if(document.getElementById('mobile-nav-cash')) document.getElementById('mobile-nav-cash').style.display = 'flex';
+                        document.getElementById('cash-class-container').style.display = 'none'; 
+                    }
+                } else { // Admin
+                    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'flex');
+                    document.querySelectorAll('.admin-only-mobile').forEach(el => el.style.display = 'flex');
+                    document.getElementById('student-action-buttons').style.display = 'flex'; 
+                    document.getElementById('nav-cash').style.display = 'flex'; 
+                    if(document.getElementById('mobile-nav-cash')) document.getElementById('mobile-nav-cash').style.display = 'flex';
+                    document.getElementById('cash-class-container').style.display = 'block';
+                }
+                loadAllData(); navigateTo('dashboard');
+            } else {
+                state.user = null; document.getElementById('app-container').classList.add('hidden'); document.getElementById('login-screen').classList.remove('hidden'); window.ui.showRoleView();
+            }
+            if(window.lucide) window.lucide.createIcons();
+        };
+
+        setTimeout(() => { document.getElementById('splash-screen').style.opacity = '0'; setTimeout(() => { document.getElementById('splash-screen').classList.add('hidden'); window.checkAuthStatus(); }, 500); }, 2500); 
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault(); const btn = document.getElementById('login-btn'); const email = document.getElementById('login-email').value; const pass = document.getElementById('login-password').value;
+            const orig = btn.innerHTML; btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Memproses...`; btn.disabled = true;
+            
+            const usrs = dbLocal.get('users'); let uRole = 'Admin'; let uClass = '-';
+            const found = usrs.find(u => u.email === email); if (found) { uRole = found.role; uClass = found.className; }
+
+            if (isFirebaseConfigured) {
+                try {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                    localStorage.setItem('edupay_user', JSON.stringify({ email: email, role: uRole, className: uClass })); 
+                    btn.innerHTML = orig; btn.disabled = false; window.checkAuthStatus();
+                } catch (error) { btn.innerHTML = orig; btn.disabled = false; utils.showToast("Email atau password salah", "error"); }
+            } else {
+                setTimeout(() => {
+                    localStorage.setItem('edupay_user', JSON.stringify({ email: email, role: uRole, className: uClass })); 
+                    btn.innerHTML = orig; btn.disabled = false; window.checkAuthStatus();
+                }, 800);
+            }
+        });
+
+        window.logout = () => { 
+            window.ui.confirmAction("Konfirmasi Keluar", "Anda yakin ingin keluar dari akun ini?", "Ya, Keluar", () => { 
+                localStorage.removeItem('edupay_user'); state.user = null; 
+                document.getElementById('app-container').classList.add('hidden'); document.getElementById('login-screen').classList.remove('hidden'); window.ui.showRoleView(); 
+                utils.showToast("Berhasil keluar."); 
+            }); 
+        };
+        document.getElementById('toggle-password').addEventListener('click', () => { const inp = document.getElementById('login-password'); inp.type = inp.type === 'password' ? 'text' : 'password'; });
+
+        /* =========================
+           DATA RENDERING & CRUD
+           ========================= */
+        function loadAllData() {
+            state.students = dbLocal.get('students'); state.paymentTypes = dbLocal.get('paymentTypes'); state.classes = dbLocal.get('classes'); state.payments = dbLocal.get('payments'); state.savingsTransactions = dbLocal.get('savingsTransactions'); state.cash = dbLocal.get('cash'); state.users = dbLocal.get('users');
+            state.schoolProfile = dbLocal.getObj('profile', { name: 'MIN 8 Sragen', address: 'Jl. Pendidikan, Sragen, Jawa Tengah' }); refreshUI();
+        }
+
+        function refreshUI() {
+            renderStudentsTable(); renderPaymentTypes(); renderClasses(); updateDropdowns(); renderRecentTransactions(); renderCashHistory(); renderUsers(); updateDashboardStats();
+            document.getElementById('set-school-name').value = state.schoolProfile.name || ''; document.getElementById('set-school-address').value = state.schoolProfile.address || '';
+            if(state.currentStudent) { state.currentStudent = state.students.find(s => s.id === state.currentStudent.id) || null; if(state.currentStudent) { document.getElementById('saving-current-balance').innerText = utils.formatRupiah(state.currentStudent.balance); loadSavingsHistory(state.currentStudent.id); } }
+        }
+
+        function renderStudentsTable(filterText = '') {
+            const tbody = document.getElementById('table-students'); tbody.innerHTML = ''; let filtered = state.students;
+            if(state.user.role === 'Guru') filtered = filtered.filter(s => s.className === state.user.className);
+            if(filterText) { const l = filterText.toLowerCase(); filtered = filtered.filter(s => s.name.toLowerCase().includes(l) || s.nis.includes(l)); }
+            if(filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500">Belum ada data siswa.</td></tr>`; return; }
+            filtered.forEach(s => {
+                let act = `<button onclick="window.editStudent('${s.id}')" class="text-gold-500 hover:bg-gold-50 p-1 rounded" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>`;
+                if(state.user.role === 'Admin') act += `<button onclick="window.deleteData('students', '${s.id}')" class="text-red-400 hover:bg-red-50 p-1 rounded ml-1" title="Hapus"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
+                tbody.innerHTML += `<tr class="hover:bg-slate-50"><td class="p-4">${s.nis}</td><td class="p-4 font-medium">${s.name}</td><td class="p-4"><span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs">${s.className}</span></td><td class="p-4 font-mono text-xs">${s.accNumber}</td><td class="p-4 text-right">${act}</td></tr>`;
+            });
+            if(window.lucide) window.lucide.createIcons();
+        }
+        document.getElementById('search-student').addEventListener('input', (e) => renderStudentsTable(e.target.value));
+
+        window.editStudent = (id) => {
+            const stu = state.students.find(s => s.id === id); if(!stu) return;
+            document.getElementById('edit-stu-id').value = stu.id; document.getElementById('edit-stu-nis').value = stu.nis; document.getElementById('edit-stu-name').value = stu.name; document.getElementById('edit-stu-phone').value = stu.phone || '';
+            const cSel = document.getElementById('edit-stu-class'); cSel.innerHTML = state.classes.map(c => `<option value="${c.name}">${c.name}</option>`).join(''); cSel.value = stu.className;
+            if (state.user.role === 'Guru') cSel.disabled = true; else cSel.disabled = false;
+            window.ui.openModal('modal-edit-student');
+        };
+
+        document.getElementById('form-edit-student').addEventListener('submit', (e) => { 
+            e.preventDefault();
+            const id = document.getElementById('edit-stu-id').value; const idx = state.students.findIndex(s => s.id === id);
+            if(idx !== -1) { 
+                state.students[idx].nis = document.getElementById('edit-stu-nis').value; 
+                if(state.user.role === 'Admin') state.students[idx].className = document.getElementById('edit-stu-class').value; 
+                state.students[idx].name = document.getElementById('edit-stu-name').value; 
+                state.students[idx].phone = document.getElementById('edit-stu-phone').value; 
+                dbLocal.set('students', state.students); refreshUI(); window.ui.closeModal('modal-edit-student'); utils.showToast('Data diperbarui!'); 
+            }
+        });
+
+        window.deleteData = (col, id) => { window.ui.confirmAction("Konfirmasi Hapus", "Yakin ingin menghapus data ini?", "Ya, Hapus", () => { state[col] = state[col].filter(i => i.id !== id); dbLocal.set(col, state[col]); refreshUI(); utils.showToast('Data dihapus'); }); };
+
+        function renderPaymentTypes() {
+            const g = document.getElementById('grid-payment-types'); g.innerHTML = '';
+            if(state.paymentTypes.length === 0) g.innerHTML = `<div class="col-span-full p-8 text-center text-slate-400">Belum ada jenis tagihan.</div>`;
+            state.paymentTypes.forEach(pt => { const l = pt.period === 'monthly' ? 'Bulanan' : (pt.period === 'once' ? 'Sekali Bayar' : 'Bebas');
+                g.innerHTML += `<div class="bg-white p-5 rounded-xl border relative group"><div class="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition"><button onclick="window.deleteData('paymentTypes', '${pt.id}')" class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div><div class="flex justify-between mb-2"><div><h4 class="font-bold text-navy-900">${pt.name}</h4><span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded uppercase">${l}</span></div><i data-lucide="tag" class="w-6 h-6 text-slate-300"></i></div><div class="mt-4"><p class="text-xs text-slate-500">Nominal</p><p class="text-xl font-bold font-mono">${utils.formatRupiah(pt.nominal)}</p></div></div>`;
+            }); if(window.lucide) window.lucide.createIcons();
+        }
+
+        function updateDropdowns() {
+            let stus = state.students; if(state.user && state.user.role === 'Guru') stus = state.students.filter(s => s.className === state.user.className);
+            const opts = `<option value="">-- Pilih --</option>` + stus.map(s => `<option value="${s.id}">${s.nis} - ${s.name} (${s.className})</option>`).join('');
+            document.getElementById('pay-student-select').innerHTML = opts; document.getElementById('saving-student-select').innerHTML = opts; document.getElementById('rep-student').innerHTML = `<option value="">Semua Siswa</option>` + stus.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            document.getElementById('pay-type-select').innerHTML = `<option value="">-- Pilih Tagihan --</option>` + state.paymentTypes.map(pt => `<option value="${pt.id}" data-nominal="${pt.nominal}">${pt.name}</option>`).join('');
+            const cls = state.classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            if(document.getElementById('stu-class')) {
+                document.getElementById('stu-class').innerHTML = `<option value="">-- Pilih Kelas --</option>` + cls; document.getElementById('usr-class').innerHTML = `<option value="-">- Tidak Ada -</option>` + cls; document.getElementById('rep-class').innerHTML = `<option value="">Semua Kelas</option>` + cls;
+                if(document.getElementById('cash-class')) document.getElementById('cash-class').innerHTML = `<option value="Semua Kelas">- Kas Umum -</option>` + cls;
+            }
+        }
+
+        function updateDashboardStats() {
+            let stus = state.students; if(state.user && state.user.role === 'Guru') stus = state.students.filter(s => s.className === state.user.className);
+            document.getElementById('dash-total-students').innerText = stus.length;
+            document.getElementById('dash-savings').innerText = utils.formatRupiah(stus.reduce((s, x) => s + (Number(x.balance) || 0), 0));
+            let tInc = 0; state.payments.forEach(tx => { if(!state.user || state.user.role === 'Admin' || tx.studentClass === state.user.className) tInc += Number(tx.nominal || 0); }); document.getElementById('dash-income').innerText = utils.formatRupiah(tInc);
+            let cash = state.cash; if (state.user && state.user.role === 'Guru') cash = state.cash.filter(c => c.className === state.user.className);
+            document.getElementById('dash-expense').innerText = utils.formatRupiah(cash.reduce((s, c) => s + (c.type === 'out' ? c.nominal : 0), 0));
+        }
+
+        function renderRecentTransactions() {
+            const l = document.getElementById('recent-transactions-list'); l.innerHTML = '';
+            let txs = [...state.payments]; if(state.user && state.user.role === 'Guru') txs = txs.filter(t => t.studentClass === state.user.className);
+            txs = txs.sort((a,b) => b.timestamp - a.timestamp).slice(0, 5);
+            if(txs.length === 0) { l.innerHTML = `<div class="text-center text-slate-500 py-8 text-sm">Belum ada transaksi</div>`; return; }
+            txs.forEach(tx => { l.innerHTML += `<div class="flex justify-between p-3 bg-slate-50 rounded-lg border"><div class="flex gap-3"><div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><i data-lucide="check" class="w-5 h-5"></i></div><div><p class="text-sm font-semibold">${tx.studentName}</p><p class="text-xs text-slate-500">${tx.paymentName} • ${utils.formatDate(tx.timestamp)}</p></div></div><div class="text-right"><p class="text-sm font-bold font-mono">${utils.formatRupiah(tx.nominal)}</p><p class="text-[10px] text-emerald-600 uppercase font-medium">Lunas</p></div></div>`; }); if(window.lucide) window.lucide.createIcons();
+        }
+
+        function renderClasses() {
+            const g = document.getElementById('grid-classes'); g.innerHTML = '';
+            if(state.classes.length === 0) g.innerHTML = `<div class="col-span-full p-8 text-center text-slate-400">Belum ada data kelas.</div>`;
+            state.classes.forEach(c => { g.innerHTML += `<div class="bg-white p-5 rounded-xl border flex justify-between group"><div class="flex gap-4"><div class="w-12 h-12 bg-navy-50 text-navy-900 rounded-full flex justify-center items-center font-bold"><i data-lucide="users" class="w-5 h-5"></i></div><div><h4 class="text-lg font-bold">${c.name}</h4><p class="text-xs text-slate-500">Wali: ${c.teacher || '-'}</p></div></div><button onclick="window.deleteData('classes', '${c.id}')" class="text-red-400 opacity-0 group-hover:opacity-100 p-2 bg-red-50 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`; }); if(window.lucide) window.lucide.createIcons();
+        }
+
+        function renderCashHistory() {
+            const tb = document.getElementById('table-cash'); tb.innerHTML = '';
+            let hs = [...state.cash]; if(state.user && state.user.role === 'Guru') hs = hs.filter(c => c.className === state.user.className);
+            hs = hs.sort((a,b) => b.timestamp - a.timestamp);
+            if(hs.length === 0) { tb.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400">Belum ada kas.</td></tr>`; document.getElementById('cash-balance').innerText = 'Rp0'; return; }
+            state.cashBalance = hs.reduce((s, c) => s + (c.type === 'in' ? c.nominal : -c.nominal), 0); document.getElementById('cash-balance').innerText = utils.formatRupiah(state.cashBalance);
+            hs.forEach(h => { const in_ = h.type === 'in'; const cb = h.className !== 'Semua Kelas' ? `<span class="block text-[10px] bg-slate-200 px-1 rounded mt-1 w-fit">${h.className}</span>` : '';
+                tb.innerHTML += `<tr class="hover:bg-slate-50 border-b"><td class="p-3 text-slate-500 whitespace-nowrap">${utils.formatDate(h.timestamp)} ${cb}</td><td class="p-3 font-medium">${h.note}</td><td class="p-3 text-right font-mono font-bold ${in_?'text-emerald-600':'text-red-600'}">${in_?'+':'-'}${utils.formatRupiah(h.nominal)}</td><td class="p-3"><span class="px-2 py-1 rounded text-[10px] font-bold ${in_?'bg-emerald-50 text-emerald-700':'bg-red-50 text-red-700'}">${in_?'MASUK':'KELUAR'}</span></td><td class="p-3 text-right">${state.user.role==='Admin'?`<button onclick="window.deleteData('cash', '${h.id}')" class="text-red-400 p-1 bg-red-50 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`:'-'}</td></tr>`;
+            }); if(window.lucide) window.lucide.createIcons();
+        }
+
+        function renderUsers() {
+            const uBody = document.getElementById('table-users'); uBody.innerHTML = '';
+            if(state.users.length === 0) uBody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-xs text-slate-400">Belum ada pengguna.</td></tr>';
+            state.users.forEach(u => { uBody.innerHTML += `<tr><td class="p-2 font-medium border-b"><div>${u.name}</div><div class="text-[10px] text-slate-400">${u.email}</div></td><td class="p-2 border-b"><span class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold uppercase">${u.role} - ${u.className}</span></td><td class="p-2 text-right border-b"><button onclick="window.deleteData('users', '${u.id}')" class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`; });
+            if(window.lucide) window.lucide.createIcons();
+        }
+
+        /* =========================
+           FORMS SUBMIT
+           ========================= */
+        document.getElementById('form-student').addEventListener('submit', (e) => { e.preventDefault();
+            const data = { id: utils.generateId('STU'), nis: document.getElementById('stu-nis').value, name: document.getElementById('stu-name').value, className: document.getElementById('stu-class').value, phone: document.getElementById('stu-phone').value, balance: 0, accNumber: 'TAB-' + Math.floor(Math.random()*10000).toString().padStart(4,'0'), timestamp: Date.now() };
+            state.students.push(data); dbLocal.set('students', state.students); refreshUI(); window.ui.closeModal('modal-student'); e.target.reset(); utils.showToast('Siswa ditambahkan');
+        });
+        document.getElementById('form-payment-type').addEventListener('submit', (e) => { e.preventDefault();
+            state.paymentTypes.push({ id: utils.generateId('PT'), name: document.getElementById('pt-name').value, nominal: Number(document.getElementById('pt-nominal').value), period: document.getElementById('pt-period').value, timestamp: Date.now() }); dbLocal.set('paymentTypes', state.paymentTypes); refreshUI(); window.ui.closeModal('modal-payment-type'); e.target.reset(); utils.showToast('Jenis ditambahkan');
+        });
+        document.getElementById('pay-type-select').addEventListener('change', (e) => { const opt = e.target.options[e.target.selectedIndex]; if(opt.dataset.nominal) document.getElementById('pay-nominal').value = opt.dataset.nominal; });
+        
+        document.getElementById('form-process-payment').addEventListener('submit', (e) => { e.preventDefault();
+            const sId = document.getElementById('pay-student-select').value; const ptId = document.getElementById('pay-type-select').value; const student = state.students.find(s => s.id === sId); const pType = state.paymentTypes.find(p => p.id === ptId); const nominal = Number(document.getElementById('pay-nominal').value);
+            if(!student || !pType || !nominal) return utils.showToast("Data tidak lengkap", "error");
+            const payData = { id: utils.generateId('EDP'), studentId: sId, studentName: student.name, studentClass: student.className, paymentTypeId: ptId, paymentName: pType.name, nominal: nominal, method: document.getElementById('pay-method').value, status: 'LUNAS', timestamp: Date.now(), actor: state.user?.email || 'System' };
+            state.payments.push(payData); dbLocal.set('payments', state.payments); refreshUI(); utils.showToast('Pembayaran Berhasil!'); e.target.reset(); window.ui.showReceipt(payData);
+        });
+        
+        document.getElementById('form-class').addEventListener('submit', (e) => { e.preventDefault(); state.classes.push({ id: utils.generateId('CLS'), name: document.getElementById('cls-name').value, teacher: document.getElementById('cls-teacher').value, timestamp: Date.now() }); dbLocal.set('classes', state.classes); refreshUI(); window.ui.closeModal('modal-class'); e.target.reset(); utils.showToast('Kelas ditambahkan'); });
+        
+        document.getElementById('form-cash').addEventListener('submit', (e) => { e.preventDefault(); let cClass = 'Semua Kelas'; if (state.user) cClass = state.user.role === 'Guru' ? state.user.className : document.getElementById('cash-class').value; state.cash.push({ id: utils.generateId('CSH'), className: cClass, type: document.getElementById('cash-type').value, note: document.getElementById('cash-note').value, nominal: Number(document.getElementById('cash-nominal').value), timestamp: Date.now() }); dbLocal.set('cash', state.cash); refreshUI(); window.ui.closeModal('modal-cash'); e.target.reset(); utils.showToast('Mutasi dicatat'); });
+        
+        document.getElementById('form-user').addEventListener('submit', (e) => { e.preventDefault(); state.users.push({ id: utils.generateId('USR'), name: document.getElementById('usr-name').value, email: document.getElementById('usr-email').value, role: document.getElementById('usr-role').value, className: document.getElementById('usr-class').value || '-', timestamp: Date.now() }); dbLocal.set('users', state.users); refreshUI(); window.ui.closeModal('modal-user'); e.target.reset(); utils.showToast('Pengguna ditambahkan'); });
+        
+        document.getElementById('form-settings-school').addEventListener('submit', (e) => { e.preventDefault(); state.schoolProfile = { name: document.getElementById('set-school-name').value, address: document.getElementById('set-school-address').value }; dbLocal.setObj('profile', state.schoolProfile); refreshUI(); utils.showToast('Profil diperbarui'); });
+
+        /* =========================
+           SAVINGS (TABUNGAN)
+           ========================= */
+        document.getElementById('saving-student-select').addEventListener('change', (e) => {
+            const sId = e.target.value; const btnP = document.getElementById('btn-print-savings');
+            if(!sId) { state.currentStudent = null; document.getElementById('saving-current-balance').innerText = 'Rp0'; document.getElementById('saving-acc-info').innerText = '-'; document.getElementById('btn-setor').disabled = true; document.getElementById('btn-tarik').disabled = true; btnP.disabled = true; document.getElementById('table-saving-history').innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400">Pilih siswa.</td></tr>`; return; }
+            state.currentStudent = state.students.find(s => s.id === sId); document.getElementById('saving-current-balance').innerText = utils.formatRupiah(state.currentStudent.balance || 0); document.getElementById('saving-acc-info').innerText = `Rek: ${state.currentStudent.accNumber} | NIS: ${state.currentStudent.nis}`; document.getElementById('btn-setor').disabled = false; document.getElementById('btn-tarik').disabled = false; btnP.disabled = false; loadSavingsHistory(sId);
+        });
+        
+        function loadSavingsHistory(id) {
+            const h = state.savingsTransactions.filter(t => t.studentId === id).sort((a,b) => b.timestamp - a.timestamp); const tb = document.getElementById('table-saving-history'); const pt = document.getElementById('ps-table-body'); tb.innerHTML = ''; pt.innerHTML = '';
+            if(h.length === 0) { tb.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-500">Belum ada riwayat.</td></tr>`; return; }
+            h.forEach(x => { const isDep = x.type === 'deposit'; let bC = `<button onclick="ui.showReceipt(${JSON.stringify(x).replace(/"/g, '&quot;')}, true, ${x.balanceAfter})" class="text-blue-500 ml-2" title="Lihat Struk"><i data-lucide="receipt" class="w-4 h-4"></i></button>`;
+                tb.innerHTML += `<tr class="hover:bg-slate-50 border-b"><td class="p-3 whitespace-nowrap">${utils.formatDate(x.timestamp)}</td><td class="p-3 font-medium ${isDep?'text-emerald-600':'text-red-600'}">${isDep?'Setoran':'Penarikan'}</td><td class="p-3 font-mono text-right ${isDep?'text-emerald-700':'text-red-700'}">${isDep?'+':'-'}${utils.formatRupiah(x.nominal)}</td><td class="p-3 font-mono font-bold text-right">${utils.formatRupiah(x.balanceAfter)} ${bC}</td></tr>`;
+                pt.innerHTML += `<tr><td class="p-2 border border-slate-300 text-xs">${utils.formatDate(x.timestamp)}</td><td class="p-2 border border-slate-300 text-xs">${isDep?'SETOR':'TARIK'} - ${x.note||''}</td><td class="p-2 border border-slate-300 text-xs text-right font-mono">${isDep?'':'-'}${utils.formatRupiah(x.nominal)}</td><td class="p-2 border border-slate-300 text-xs text-right font-mono font-bold">${utils.formatRupiah(x.balanceAfter)}</td></tr>`;
+            }); if(window.lucide) window.lucide.createIcons();
+        }
+        
+        window.printSavingsBook = () => { if(!state.currentStudent) return; document.getElementById('ps-school').innerText = state.schoolProfile.name; document.getElementById('ps-name').innerText = state.currentStudent.name; document.getElementById('ps-nis').innerText = state.currentStudent.nis; document.getElementById('ps-class').innerText = state.currentStudent.className; document.getElementById('ps-acc').innerText = state.currentStudent.accNumber; document.body.classList.add('printing-savings'); window.print(); setTimeout(() => document.body.classList.remove('printing-savings'), 500); };
+        
+        document.getElementById('form-saving-trx').addEventListener('submit', (e) => { e.preventDefault();
+            const type = document.getElementById('sav-type').value; const nom = Number(document.getElementById('sav-nominal').value); let cBal = Number(state.currentStudent.balance || 0);
+            if (type === 'withdraw' && cBal < nom) return utils.showToast("Saldo tidak mencukupi!", "error");
+            let nBal = type === 'withdraw' ? cBal - nom : cBal + nom; const sIdx = state.students.findIndex(s => s.id === state.currentStudent.id); state.students[sIdx].balance = nBal;
+            const trx = { id: utils.generateId('SAV'), studentId: state.currentStudent.id, type: type, nominal: nom, note: document.getElementById('sav-note').value, balanceAfter: nBal, timestamp: Date.now() }; state.savingsTransactions.push(trx);
+            dbLocal.set('students', state.students); dbLocal.set('savingsTransactions', state.savingsTransactions); refreshUI(); utils.showToast(`Berhasil!`); window.ui.closeModal('modal-saving-trx'); window.ui.showReceipt(trx, true, nBal);
+        });
+
+        /* =========================
+           REPORTS & EXCEL 
+           ========================= */
+        window.generateReport = () => {
+            const tR = document.getElementById('rep-time-range').value; const tT = document.getElementById('rep-trx-type').value; const fC = document.getElementById('rep-class').value; const fS = document.getElementById('rep-student').value; const tb = document.getElementById('table-report');
+            const now = new Date(); let st = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime(); let en = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).getTime(); let pT = "Hari Ini";
+            if (tR === 'this_week') { const d = now.getDay(); const df = now.getDate() - d + (d === 0 ? -6 : 1); st = new Date(now.setDate(df)).setHours(0,0,0,0); en = st + (6 * 24 * 3600000) + 86399000; pT = "Minggu Ini"; } else if (tR === 'this_month') { st = new Date(now.getFullYear(), now.getMonth(), 1).getTime(); en = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).getTime(); pT = "Bulan Ini"; } else if (tR === 'this_year') { st = new Date(now.getFullYear(), 0, 1).getTime(); en = new Date(now.getFullYear(), 11, 31, 23, 59, 59).getTime(); pT = "Tahun Ini"; } else if (tR === 'all_time') { st = 0; en = Date.now() + 31536000000; pT = "Semua Waktu"; }
+            document.getElementById('print-school-name').innerText = state.schoolProfile.name; document.getElementById('print-report-period').innerText = `Periode: ${pT} | Kat: ${tT} | Kelas: ${fC||'Semua'} | Siswa: ${fS||'Semua'}`;
+            let cb = []; let tIn = 0; let tOut = 0;
+            if (tT === 'all' || tT === 'payments') { state.payments.forEach(d => { let m = d.timestamp >= st && d.timestamp <= en; if(state.user.role === 'Guru' && d.studentClass !== state.user.className) m = false; if(fC && d.studentClass !== fC) m = false; if(fS && d.studentName !== fS) m = false; if(m) { cb.push({ id: d.id, col: 'payments', d: d.timestamp, r: `${d.studentName} (${d.studentClass || '-'})`, c: 'Pemb. ' + d.paymentName, in: d.nominal, out: 0, canEdit: state.user.role === 'Admin' }); tIn += d.nominal; } }); }
+            if (tT === 'all' || tT === 'savings') { state.savingsTransactions.forEach(d => { const s = state.students.find(x => x.id === d.studentId) || {}; let m = d.timestamp >= st && d.timestamp <= en; if(state.user.role === 'Guru' && s.className !== state.user.className) m = false; if(fC && s.className !== fC) m = false; if(fS && s.name !== fS) m = false; if(m) { const isD = d.type === 'deposit'; cb.push({ id: d.id, col: 'savingsTransactions', d: d.timestamp, r: `${s.name||'Siswa'} (${s.className||'-'})`, c: isD ? 'Setoran Tabungan' : 'Tarik Tabungan', in: isD ? d.nominal : 0, out: isD ? 0 : d.nominal, canEdit: false }); if(isD) tIn += d.nominal; else tOut += d.nominal; } }); }
+            if (tT === 'all' || tT === 'cash') { state.cash.forEach(d => { let m = d.timestamp >= st && d.timestamp <= en; if(state.user.role === 'Guru' && d.className !== state.user.className) m = false; if(fC && d.className !== fC && d.className !== 'Semua Kelas') m = false; if(fS) m = false; if(m) { const isI = d.type === 'in'; const ref = d.className !== 'Semua Kelas' ? `KAS (${d.className})` : 'KAS UMUM'; cb.push({ id: d.id, col: 'cash', d: d.timestamp, r: ref, c: d.note, in: isI ? d.nominal : 0, out: isI ? 0 : d.nominal, canEdit: state.user.role === 'Admin' }); if(isI) tIn += d.nominal; else tOut += d.nominal; } }); }
+            tb.innerHTML = '';
+            if (cb.length === 0) { tb.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Tidak ada transaksi.</td></tr>`; } else { cb.sort((a,b) => b.d - a.d).forEach(i => { const bE = i.canEdit ? `<button onclick="window.editTransaction('${i.col}', '${i.id}')" class="text-gold-500 hover:text-gold-600 p-1 bg-gold-50 rounded" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>` : '-'; tb.innerHTML += `<tr class="hover:bg-slate-50 border-b"><td class="p-3 whitespace-nowrap">${utils.formatDate(i.d)}</td><td class="p-3 font-medium">${i.r}</td><td class="p-3">${i.c}</td><td class="p-3 text-right font-mono ${i.in > 0 ? 'text-emerald-600 font-bold' : ''}">${i.in > 0 ? utils.formatRupiah(i.in) : '-'}</td><td class="p-3 text-right font-mono ${i.out > 0 ? 'text-red-600 font-bold' : ''}">${i.out > 0 ? utils.formatRupiah(i.out) : '-'}</td><td class="p-3 text-center no-print">${bE}</td></tr>`; }); }
+            document.getElementById('rep-tot-in').innerText = utils.formatRupiah(tIn); document.getElementById('rep-tot-out').innerText = utils.formatRupiah(tOut); if(window.lucide) window.lucide.createIcons();
+        };
+        window.printReport = () => { document.body.classList.add('printing-report'); window.print(); setTimeout(() => document.body.classList.remove('printing-report'), 500); };
+        window.printReceipt = () => { document.body.classList.add('printing-receipt'); window.print(); setTimeout(() => document.body.classList.remove('printing-receipt'), 500); };
+        
+        window.editTransaction = (col, id) => { const d = state[col].find(x => x.id === id); if(!d) return; document.getElementById('edit-trx-id').value = id; document.getElementById('edit-trx-col').value = col; document.getElementById('edit-trx-nominal').value = d.nominal; document.getElementById('edit-trx-note').value = col === 'payments' ? d.paymentName : d.note; document.getElementById('edit-original-info').innerText = `${utils.formatRupiah(d.nominal)}`; window.ui.openModal('modal-edit-trx'); };
+        document.getElementById('form-edit-trx')?.addEventListener('submit', (e) => { e.preventDefault(); const id = document.getElementById('edit-trx-id').value; const col = document.getElementById('edit-trx-col').value; const nom = Number(document.getElementById('edit-trx-nominal').value); const not = document.getElementById('edit-trx-note').value; const idx = state[col].findIndex(x => x.id === id); if(idx !== -1) { state[col][idx].nominal = nom; if(col === 'payments') state[col][idx].paymentName = not; else state[col][idx].note = not; dbLocal.set(col, state[col]); refreshUI(); window.generateReport(); window.ui.closeModal('modal-edit-trx'); utils.showToast('Diperbarui'); } });
+
+        window.downloadTemplate = (type) => {
+            let data = []; let fn = '';
+            if (type === 'students') { data = [{"NIS": "2026001", "Nama Lengkap": "Ahmad Budi", "Kelas": "10-A", "WhatsApp Wali": "081234"}]; fn = "Template_Siswa.xlsx"; } else { data = [{"Nama Lengkap": "Budi Guru", "Email Login": "guru2@edupay.com", "Role": "Guru", "Wali Kelas": "10-B"}]; fn = "Template_Pengguna.xlsx"; }
+            const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data"); XLSX.writeFile(wb, fn);
+        };
+        const handleImportExcel = (e, col, mapFn) => {
+            const f = e.target.files[0]; if(!f) return; const r = new FileReader();
+            r.onload = function(evt) { const wb = XLSX.read(new Uint8Array(evt.target.result), {type: 'array'}); const js = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let cnt = 0; js.forEach(row => { if(mapFn(row)) cnt++; }); dbLocal.set(col, state[col]); refreshUI(); utils.showToast(`${cnt} data berhasil di-import`); e.target.value = ''; }; r.readAsArrayBuffer(f);
+        };
+        document.getElementById('file-import-students')?.addEventListener('change', (e) => handleImportExcel(e, 'students', (row) => { if(row['NIS'] && row['Nama Lengkap']) { state.students.push({ id: utils.generateId('STU'), nis: String(row['NIS']).trim(), name: String(row['Nama Lengkap']).trim(), className: String(row['Kelas'] || '').trim(), phone: String(row['WhatsApp Wali'] || '').trim(), accNumber: 'TAB-' + Math.floor(Math.random()*10000).toString().padStart(4,'0'), balance: 0, timestamp: Date.now() }); return true; } return false; }));
+        document.getElementById('file-import-users')?.addEventListener('change', (e) => handleImportExcel(e, 'users', (row) => { if(row['Email Login']) { state.users.push({ id: utils.generateId('USR'), name: String(row['Nama Lengkap']).trim(), email: String(row['Email Login']).trim(), role: String(row['Role'] || 'Guru').trim(), className: String(row['Wali Kelas'] || '-').trim(), timestamp: Date.now() }); return true; } return false; }));
+
+        /* =========================
+           CHART.JS CONFIG
+           ========================= */
+        let chartInstance = null;
+        function initChart() {
+            const ctx = document.getElementById('mainChart'); if(!ctx) return; if(chartInstance) chartInstance.destroy();
+            const monthlyData = [0,0,0,0,0,0,0,0,0,0,0,0]; const currentYear = new Date().getFullYear();
+            state.payments.forEach(p => { const d = new Date(p.timestamp); if(d.getFullYear() === currentYear && (!state.user || state.user.role === 'Admin' || p.studentClass === state.user.className)) { monthlyData[d.getMonth()] += p.nominal; } });
+            chartInstance = new Chart(ctx, { type: 'bar', data: { labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'], datasets: [{ label: 'Pemasukan (Rp)', data: monthlyData, backgroundColor: '#10b981', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } });
+        }
+    </script>
+</body>
+</html>
